@@ -117,8 +117,21 @@ class ImageGenerationService:
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
-        with open(image_path, "wb") as f:
-            f.write(base64.b64decode(result.data[0].b64_json))
+        # For DALL-E 3, use b64_json; for other models (like gpt-image-1.5), download from URL
+        if result.data[0].b64_json:
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(result.data[0].b64_json))
+        else:
+            # Download image from URL for models that don't support b64_json
+            async with aiohttp.ClientSession() as session:
+                async with session.get(result.data[0].url) as response:
+                    if response.status == 200:
+                        with open(image_path, "wb") as f:
+                            f.write(await response.read())
+                    else:
+                        raise Exception(
+                            f"Failed to download image from OpenAI: {response.status}"
+                        )
         return image_path
 
     async def generate_image_openai_dalle3(
