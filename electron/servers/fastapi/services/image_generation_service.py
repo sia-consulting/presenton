@@ -5,7 +5,7 @@ import os
 import aiohttp
 from fastapi import HTTPException
 from google import genai
-from openai import NOT_GIVEN, AsyncOpenAI
+from openai import AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from utils.get_env import (
@@ -108,15 +108,18 @@ class ImageGenerationService:
         self, prompt: str, output_directory: str, model: str, quality: str
     ) -> str:
         client = AsyncOpenAI()
+        # Both DALL-E 3 and GPT-Image models support b64_json format
+        # GPT-Image models (gpt-image-1, gpt-image-1.5) ONLY support b64_json, not URL
         result = await client.images.generate(
             model=model,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json" if model == "dall-e-3" else NOT_GIVEN,
+            response_format="b64_json",
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
+        # All models return b64_json when response_format="b64_json" is specified
         with open(image_path, "wb") as f:
             f.write(base64.b64decode(result.data[0].b64_json))
         return image_path

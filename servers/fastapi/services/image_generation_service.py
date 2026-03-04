@@ -5,7 +5,7 @@ import os
 import aiohttp
 from fastapi import HTTPException
 from google import genai
-from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from utils.get_env import (
@@ -118,15 +118,18 @@ class ImageGenerationService:
         self, prompt: str, output_directory: str, model: str, quality: str
     ) -> str:
         client = AsyncOpenAI()
+        # Both DALL-E 3 and GPT-Image models support b64_json format
+        # GPT-Image models (gpt-image-1, gpt-image-1.5) ONLY support b64_json, not URL
         result = await client.images.generate(
             model=model,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json" if model == "dall-e-3" else NOT_GIVEN,
+            response_format="b64_json",
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
+        # All models return b64_json when response_format="b64_json" is specified
         with open(image_path, "wb") as f:
             f.write(base64.b64decode(result.data[0].b64_json))
         return image_path
@@ -177,17 +180,38 @@ class ImageGenerationService:
             azure_endpoint=get_azure_openai_endpoint_env(),
             api_version=get_azure_openai_image_api_version_env() or "2024-02-15-preview",
         )
+        # Azure OpenAI image generation - try b64_json first, fall back to URL
+        # Some deployments (like GPT Image) return b64_json, others return URL
         result = await client.images.generate(
             model=deployment,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json",
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
-        with open(image_path, "wb") as f:
-            f.write(base64.b64decode(result.data[0].b64_json))
+        # Check for b64_json first (some models like GPT Image return this)
+        # Use explicit None check for clarity
+        if result.data[0].b64_json is not None:
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(result.data[0].b64_json))
+        elif result.data[0].url is not None:
+            # Download the image from URL returned by Azure
+            async with aiohttp.ClientSession() as session:
+                async with session.get(result.data[0].url) as response:
+                    if response.status == 200:
+                        with open(image_path, "wb") as f:
+                            f.write(await response.read())
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to download image from Azure: {response.status}",
+                        )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Azure OpenAI returned no image data (neither b64_json nor URL)",
+            )
         return image_path
 
     async def generate_image_azure_dalle3(

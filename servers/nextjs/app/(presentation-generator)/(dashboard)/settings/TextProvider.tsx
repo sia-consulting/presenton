@@ -44,6 +44,8 @@ const TextProvider = ({
                 return 'OLLAMA_MODEL';
             case 'custom':
                 return 'CUSTOM_MODEL';
+            case 'azure_openai':
+                return 'AZURE_OPENAI_DEPLOYMENT';
             default:
                 return '';
         }
@@ -59,6 +61,8 @@ const TextProvider = ({
                 return 'ANTHROPIC_API_KEY';
             case 'custom':
                 return 'CUSTOM_LLM_API_KEY';
+            case 'azure_openai':
+                return 'AZURE_OPENAI_API_KEY';
             default:
                 return '';
         }
@@ -68,6 +72,8 @@ const TextProvider = ({
     const currentApiKey = currentApiKeyField ? ((llmConfig as Record<string, unknown>)[currentApiKeyField] as string || '') : '';
     const currentCustomUrl = llmConfig.CUSTOM_LLM_URL || '';
     const currentOllamaUrl = llmConfig.OLLAMA_URL || '';
+    const currentAzureEndpoint = llmConfig.AZURE_OPENAI_ENDPOINT || '';
+    const currentAzureApiVersion = llmConfig.AZURE_OPENAI_API_VERSION || '';
     const modelLabel = selectedProviderMeta?.label || selectedProvider;
 
     useEffect(() => {
@@ -81,7 +87,7 @@ const TextProvider = ({
         if (currentModelField) {
             onInputChange('', currentModelField);
         }
-    }, [selectedProvider, currentApiKey, currentCustomUrl, currentOllamaUrl]);
+    }, [selectedProvider, currentApiKey, currentCustomUrl, currentOllamaUrl, currentAzureEndpoint]);
 
     const onApiKeyChange = (llm: keyof typeof LLM_PROVIDERS, value: string) => {
         if (llm === 'ollama') {
@@ -98,7 +104,9 @@ const TextProvider = ({
                         ? 'ANTHROPIC_API_KEY'
                         : llm === 'custom'
                             ? 'CUSTOM_LLM_API_KEY'
-                            : '';
+                            : llm === 'azure_openai'
+                                ? 'AZURE_OPENAI_API_KEY'
+                                : '';
         if (keyField) {
             onInputChange(value, keyField);
         }
@@ -109,6 +117,8 @@ const TextProvider = ({
         if (selectedProvider === 'google' && !currentApiKey) return;
         if (selectedProvider === 'anthropic' && !currentApiKey) return;
         if (selectedProvider === 'custom' && !currentCustomUrl) return;
+        // Azure OpenAI doesn't need model fetching - user specifies deployment name
+        if (selectedProvider === 'azure_openai') return;
 
         setModelsLoading(true);
         try {
@@ -303,7 +313,7 @@ const TextProvider = ({
                     <div className="relative flex flex-col justify-end  items-end w-[205px] ">
                         <div className="flex flex-col justify-start ">
                             <label className="block text-sm font-medium capitalize text-gray-700 mb-2">
-                                {selectedProvider === 'ollama' ? 'Ollama URL' : selectedProvider === 'custom' ? 'Custom LLM API Key' : `${llmConfig.LLM} API Key`}
+                                {selectedProvider === 'ollama' ? 'Ollama URL' : selectedProvider === 'custom' ? 'Custom LLM API Key' : selectedProvider === 'azure_openai' ? 'Azure OpenAI API Key' : `${llmConfig.LLM} API Key`}
                             </label>
                             <div className="relative">
                                 <input
@@ -312,7 +322,7 @@ const TextProvider = ({
                                     value={selectedProvider === 'ollama' ? currentOllamaUrl : currentApiKey}
                                     onChange={(e) => onApiKeyChange(selectedProvider, e.target.value)}
                                     className="w-full px-2 py-3 outline-none border  border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                                    placeholder={selectedProvider === 'ollama' ? 'http://localhost:11434' : `Enter your ${llmConfig.LLM} API key`}
+                                    placeholder={selectedProvider === 'ollama' ? 'http://localhost:11434' : selectedProvider === 'azure_openai' ? 'Enter your Azure OpenAI API key' : `Enter your ${llmConfig.LLM} API key`}
                                 />
                                 {selectedProvider !== 'ollama' && (
                                     <button
@@ -338,7 +348,7 @@ const TextProvider = ({
                         </div>
 
 
-                        {selectedProvider !== 'ollama' && (!modelsChecked || (modelsChecked && availableModels.length === 0)) && (
+                        {selectedProvider !== 'ollama' && selectedProvider !== 'azure_openai' && (!modelsChecked || (modelsChecked && availableModels.length === 0)) && (
 
                             <button
                                 onClick={fetchAvailableModels}
@@ -366,6 +376,48 @@ const TextProvider = ({
 
                         )}
                     </div>
+
+                    {/* Azure OpenAI specific fields */}
+                    {selectedProvider === 'azure_openai' && (
+                        <>
+                            <div className="w-[205px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Endpoint URL
+                                </label>
+                                <input
+                                    type="text"
+                                    value={currentAzureEndpoint}
+                                    onChange={(e) => onInputChange(e.target.value, 'AZURE_OPENAI_ENDPOINT')}
+                                    className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                    placeholder="https://your-resource.openai.azure.com"
+                                />
+                            </div>
+                            <div className="w-[205px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Deployment Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={currentModel}
+                                    onChange={(e) => onInputChange(e.target.value, 'AZURE_OPENAI_DEPLOYMENT')}
+                                    className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                    placeholder="gpt-4o"
+                                />
+                            </div>
+                            <div className="w-[205px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    API Version
+                                </label>
+                                <input
+                                    type="text"
+                                    value={currentAzureApiVersion}
+                                    onChange={(e) => onInputChange(e.target.value, 'AZURE_OPENAI_API_VERSION')}
+                                    className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                    placeholder="2024-02-15-preview"
+                                />
+                            </div>
+                        </>
+                    )}
 
 
                     {/* Model Selection - only show if models are available */}
