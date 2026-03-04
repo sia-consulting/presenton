@@ -5,7 +5,7 @@ import os
 import aiohttp
 from fastapi import HTTPException
 from google import genai
-from openai import NOT_GIVEN, AsyncOpenAI
+from openai import AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from utils.get_env import (
@@ -108,30 +108,21 @@ class ImageGenerationService:
         self, prompt: str, output_directory: str, model: str, quality: str
     ) -> str:
         client = AsyncOpenAI()
+        # Both DALL-E 3 and GPT-Image models support b64_json format
+        # GPT-Image models (gpt-image-1, gpt-image-1.5) ONLY support b64_json, not URL
         result = await client.images.generate(
             model=model,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json" if model == "dall-e-3" else NOT_GIVEN,
+            response_format="b64_json",
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
-        # For DALL-E 3, use b64_json; for other models (like gpt-image-1.5), download from URL
-        if result.data[0].b64_json:
-            with open(image_path, "wb") as f:
-                f.write(base64.b64decode(result.data[0].b64_json))
-        else:
-            # Download image from URL for models that don't support b64_json
-            async with aiohttp.ClientSession() as session:
-                async with session.get(result.data[0].url) as response:
-                    if response.status == 200:
-                        with open(image_path, "wb") as f:
-                            f.write(await response.read())
-                    else:
-                        raise Exception(
-                            f"Failed to download image from OpenAI: {response.status}"
-                        )
+        # All models return b64_json when response_format="b64_json" is specified
+        with open(image_path, "wb") as f:
+            f.write(base64.b64decode(result.data[0].b64_json))
+        return image_path
         return image_path
 
     async def generate_image_openai_dalle3(
