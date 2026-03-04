@@ -27,9 +27,15 @@ async def export_presentation(
                 if response.status != 200:
                     error_text = await response.text()
                     print(f"Failed to get PPTX model: {error_text}")
+                    # Try to parse the error as JSON to get more specific error message
+                    try:
+                        error_json = json.loads(error_text)
+                        error_detail = error_json.get("detail", error_text)
+                    except json.JSONDecodeError:
+                        error_detail = error_text
                     raise HTTPException(
                         status_code=500,
-                        detail="Failed to convert presentation to PPTX model",
+                        detail=f"Failed to convert presentation to PPTX model: {error_detail}",
                     )
                 pptx_model_data = await response.json()
 
