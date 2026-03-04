@@ -693,6 +693,13 @@ class LLMClient:
                 content = await self._generate_custom(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
+            case LLMProvider.AZURE_OPENAI:
+                content = await self._generate_openai(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    tools=parsed_tools,
+                )
         if content is None:
             raise HTTPException(
                 status_code=400,
@@ -1129,6 +1136,15 @@ class LLMClient:
                     messages=messages,
                     response_format=response_format,
                     strict=strict,
+                    max_tokens=max_tokens,
+                )
+            case LLMProvider.AZURE_OPENAI:
+                content = await self._generate_openai_structured(
+                    model=model,
+                    messages=messages,
+                    response_format=response_format,
+                    strict=strict,
+                    tools=parsed_tools,
                     max_tokens=max_tokens,
                 )
         if content is None:
