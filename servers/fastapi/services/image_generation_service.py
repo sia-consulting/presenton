@@ -177,19 +177,27 @@ class ImageGenerationService:
             azure_endpoint=get_azure_openai_endpoint_env(),
             api_version=get_azure_openai_image_api_version_env() or "2024-02-15-preview",
         )
-        # Only DALL-E 3 supports response_format parameter in Azure
-        # GPT Image models don't support it
+        # Azure OpenAI image generation - don't use response_format as it's not
+        # supported by all deployments/API versions. Download from URL instead.
         result = await client.images.generate(
             model=deployment,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json" if model == "dall-e-3" else NOT_GIVEN,
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
-        with open(image_path, "wb") as f:
-            f.write(base64.b64decode(result.data[0].b64_json))
+        # Download the image from URL returned by Azure
+        async with aiohttp.ClientSession() as session:
+            async with session.get(result.data[0].url) as response:
+                if response.status == 200:
+                    with open(image_path, "wb") as f:
+                        f.write(await response.read())
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to download image from Azure: {response.status}",
+                    )
         return image_path
 
     async def generate_image_azure_dalle3(
