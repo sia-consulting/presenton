@@ -177,12 +177,14 @@ class ImageGenerationService:
             azure_endpoint=get_azure_openai_endpoint_env(),
             api_version=get_azure_openai_image_api_version_env() or "2024-02-15-preview",
         )
+        # Only DALL-E 3 supports response_format parameter in Azure
+        # GPT Image models don't support it
         result = await client.images.generate(
             model=deployment,
             prompt=prompt,
             n=1,
             quality=quality,
-            response_format="b64_json",
+            response_format="b64_json" if model == "dall-e-3" else NOT_GIVEN,
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
