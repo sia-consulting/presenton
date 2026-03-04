@@ -89,6 +89,24 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderOption> = {
     apiKeyField: "COMFYUI_URL",
     apiKeyFieldLabel: "ComfyUI Server URL",
   },
+  "azure-dall-e-3": {
+    value: "azure-dall-e-3",
+    label: "Azure DALL-E 3",
+    description: "Azure OpenAI DALL-E 3 image generation",
+    icon: "/icons/azure.png",
+    requiresApiKey: true,
+    apiKeyField: "AZURE_OPENAI_API_KEY",
+    apiKeyFieldLabel: "Azure OpenAI API Key",
+  },
+  "azure-gpt-image": {
+    value: "azure-gpt-image",
+    label: "Azure GPT Image",
+    description: "Azure OpenAI GPT image generation",
+    icon: "/icons/azure.png",
+    requiresApiKey: true,
+    apiKeyField: "AZURE_OPENAI_API_KEY",
+    apiKeyFieldLabel: "Azure OpenAI API Key",
+  },
 };
 
 export const LLM_PROVIDERS: Record<string, LLMProviderOption> = {
@@ -124,6 +142,11 @@ export const LLM_PROVIDERS: Record<string, LLMProviderOption> = {
     value: "codex",
     label: "ChatGPT",
     description: "ChatGPT Plus/Pro via OAuth",
+  },
+  azure_openai: {
+    value: "azure_openai",
+    label: "Azure OpenAI",
+    description: "Azure OpenAI Service",
   },
 };
 

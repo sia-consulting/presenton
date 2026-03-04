@@ -5,10 +5,14 @@ import os
 import aiohttp
 from fastapi import HTTPException
 from google import genai
-from openai import NOT_GIVEN, AsyncOpenAI
+from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from utils.get_env import (
+    get_azure_openai_api_key_env,
+    get_azure_openai_endpoint_env,
+    get_azure_openai_image_api_version_env,
+    get_azure_openai_image_deployment_env,
     get_dall_e_3_quality_env,
     get_gpt_image_1_5_quality_env,
     get_pexels_api_key_env,
@@ -17,6 +21,8 @@ from utils.get_env import get_pixabay_api_key_env
 from utils.get_env import get_comfyui_url_env
 from utils.get_env import get_comfyui_workflow_env
 from utils.image_provider import (
+    is_azure_dalle3_selected,
+    is_azure_gpt_image_selected,
     is_gpt_image_1_5_selected,
     is_image_generation_disabled,
     is_pixels_selected,
@@ -53,6 +59,10 @@ class ImageGenerationService:
             return self.generate_image_openai_gpt_image_1_5
         elif is_comfyui_selected():
             return self.generate_image_comfyui
+        elif is_azure_dalle3_selected():
+            return self.generate_image_azure_dalle3
+        elif is_azure_gpt_image_selected():
+            return self.generate_image_azure_gpt_image
         return None
 
     def is_stock_provider_selected(self):
@@ -138,6 +148,67 @@ class ImageGenerationService:
             prompt,
             output_directory,
             "gpt-image-1.5",
+            get_gpt_image_1_5_quality_env() or "medium",
+        )
+
+    async def generate_image_azure_openai(
+        self, prompt: str, output_directory: str, model: str, quality: str
+    ) -> str:
+        """Generate image using Azure OpenAI."""
+        if not get_azure_openai_api_key_env():
+            raise HTTPException(
+                status_code=400,
+                detail="Azure OpenAI API Key is not set",
+            )
+        if not get_azure_openai_endpoint_env():
+            raise HTTPException(
+                status_code=400,
+                detail="Azure OpenAI Endpoint is not set",
+            )
+        deployment = get_azure_openai_image_deployment_env()
+        if not deployment:
+            raise HTTPException(
+                status_code=400,
+                detail="Azure OpenAI Image Deployment is not set",
+            )
+
+        client = AsyncAzureOpenAI(
+            api_key=get_azure_openai_api_key_env(),
+            azure_endpoint=get_azure_openai_endpoint_env(),
+            api_version=get_azure_openai_image_api_version_env() or "2024-02-15-preview",
+        )
+        result = await client.images.generate(
+            model=deployment,
+            prompt=prompt,
+            n=1,
+            quality=quality,
+            response_format="b64_json",
+            size="1024x1024",
+        )
+        image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
+        with open(image_path, "wb") as f:
+            f.write(base64.b64decode(result.data[0].b64_json))
+        return image_path
+
+    async def generate_image_azure_dalle3(
+        self, prompt: str, output_directory: str
+    ) -> str:
+        """Generate image using Azure OpenAI DALL-E 3."""
+        return await self.generate_image_azure_openai(
+            prompt,
+            output_directory,
+            "dall-e-3",
+            get_dall_e_3_quality_env() or "standard",
+        )
+
+    async def generate_image_azure_gpt_image(
+        self, prompt: str, output_directory: str
+    ) -> str:
+        """Generate image using Azure OpenAI GPT Image."""
+        return await self.generate_image_azure_openai(
+            prompt,
+            output_directory,
+            "gpt-image",
             get_gpt_image_1_5_quality_env() or "medium",
         )
 

@@ -124,3 +124,29 @@ def set_codex_account_id_env(value: str):
 
 def set_codex_model_env(value: str):
     os.environ["CODEX_MODEL"] = value
+
+
+# Azure OpenAI
+def set_azure_openai_api_key_env(value: str):
+    os.environ["AZURE_OPENAI_API_KEY"] = value
+
+
+def set_azure_openai_endpoint_env(value: str):
+    os.environ["AZURE_OPENAI_ENDPOINT"] = value
+
+
+def set_azure_openai_deployment_env(value: str):
+    os.environ["AZURE_OPENAI_DEPLOYMENT"] = value
+
+
+def set_azure_openai_api_version_env(value: str):
+    os.environ["AZURE_OPENAI_API_VERSION"] = value
+
+
+# Azure OpenAI Image Generation
+def set_azure_openai_image_deployment_env(value: str):
+    os.environ["AZURE_OPENAI_IMAGE_DEPLOYMENT"] = value
+
+
+def set_azure_openai_image_api_version_env(value: str):
+    os.environ["AZURE_OPENAI_IMAGE_API_VERSION"] = value

@@ -3,7 +3,7 @@ import dirtyjson
 import json
 from typing import AsyncGenerator, List, Optional, Dict, Any
 from fastapi import HTTPException
-from openai import APIStatusError, AsyncOpenAI, OpenAIError
+from openai import APIStatusError, AsyncAzureOpenAI, AsyncOpenAI, OpenAIError
 from openai.types.chat.chat_completion_chunk import (
     ChatCompletionChunk as OpenAIChatCompletionChunk,
 )
@@ -44,6 +44,9 @@ from utils.async_iterator import iterator_to_async
 from utils.dummy_functions import do_nothing_async
 from utils.get_env import (
     get_anthropic_api_key_env,
+    get_azure_openai_api_key_env,
+    get_azure_openai_api_version_env,
+    get_azure_openai_endpoint_env,
     get_codex_access_token_env,
     get_codex_account_id_env,
     get_codex_refresh_token_env,
@@ -114,10 +117,12 @@ class LLMClient:
                 return self._get_custom_client()
             case LLMProvider.CODEX:
                 return self._get_codex_client()
+            case LLMProvider.AZURE_OPENAI:
+                return self._get_azure_openai_client()
             case _:
                 raise HTTPException(
                     status_code=400,
-                    detail="LLM Provider must be either openai, google, anthropic, ollama, custom, or codex",
+                    detail="LLM Provider must be either openai, google, anthropic, ollama, custom, codex, or azure_openai",
                 )
 
     def _get_openai_client(self):
@@ -159,6 +164,23 @@ class LLMClient:
         return AsyncOpenAI(
             base_url=get_custom_llm_url_env(),
             api_key=get_custom_llm_api_key_env() or "null",
+        )
+
+    def _get_azure_openai_client(self):
+        if not get_azure_openai_api_key_env():
+            raise HTTPException(
+                status_code=400,
+                detail="Azure OpenAI API Key is not set",
+            )
+        if not get_azure_openai_endpoint_env():
+            raise HTTPException(
+                status_code=400,
+                detail="Azure OpenAI Endpoint is not set",
+            )
+        return AsyncAzureOpenAI(
+            api_key=get_azure_openai_api_key_env(),
+            azure_endpoint=get_azure_openai_endpoint_env(),
+            api_version=get_azure_openai_api_version_env() or "2024-02-15-preview",
         )
 
     def _get_codex_headers(self) -> dict:

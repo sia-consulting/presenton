@@ -5,6 +5,12 @@ from models.user_config import UserConfig
 from utils.get_env import (
     get_anthropic_api_key_env,
     get_anthropic_model_env,
+    get_azure_openai_api_key_env,
+    get_azure_openai_api_version_env,
+    get_azure_openai_deployment_env,
+    get_azure_openai_endpoint_env,
+    get_azure_openai_image_api_version_env,
+    get_azure_openai_image_deployment_env,
     get_comfyui_url_env,
     get_comfyui_workflow_env,
     get_custom_llm_api_key_env,
@@ -38,6 +44,12 @@ from utils.parsers import parse_bool_or_none
 from utils.set_env import (
     set_anthropic_api_key_env,
     set_anthropic_model_env,
+    set_azure_openai_api_key_env,
+    set_azure_openai_api_version_env,
+    set_azure_openai_deployment_env,
+    set_azure_openai_endpoint_env,
+    set_azure_openai_image_api_version_env,
+    set_azure_openai_image_deployment_env,
     set_comfyui_url_env,
     set_comfyui_workflow_env,
     set_custom_llm_api_key_env,
@@ -95,6 +107,19 @@ def get_user_config():
         CUSTOM_LLM_API_KEY=existing_config.CUSTOM_LLM_API_KEY
         or get_custom_llm_api_key_env(),
         CUSTOM_MODEL=existing_config.CUSTOM_MODEL or get_custom_model_env(),
+        # Azure OpenAI
+        AZURE_OPENAI_API_KEY=existing_config.AZURE_OPENAI_API_KEY
+        or get_azure_openai_api_key_env(),
+        AZURE_OPENAI_ENDPOINT=existing_config.AZURE_OPENAI_ENDPOINT
+        or get_azure_openai_endpoint_env(),
+        AZURE_OPENAI_DEPLOYMENT=existing_config.AZURE_OPENAI_DEPLOYMENT
+        or get_azure_openai_deployment_env(),
+        AZURE_OPENAI_API_VERSION=existing_config.AZURE_OPENAI_API_VERSION
+        or get_azure_openai_api_version_env(),
+        AZURE_OPENAI_IMAGE_DEPLOYMENT=existing_config.AZURE_OPENAI_IMAGE_DEPLOYMENT
+        or get_azure_openai_image_deployment_env(),
+        AZURE_OPENAI_IMAGE_API_VERSION=existing_config.AZURE_OPENAI_IMAGE_API_VERSION
+        or get_azure_openai_image_api_version_env(),
         IMAGE_PROVIDER=existing_config.IMAGE_PROVIDER or get_image_provider_env(),
         DISABLE_IMAGE_GENERATION=(
             existing_config.DISABLE_IMAGE_GENERATION
@@ -162,6 +187,19 @@ def update_env_with_user_config():
         set_custom_llm_api_key_env(user_config.CUSTOM_LLM_API_KEY)
     if user_config.CUSTOM_MODEL:
         set_custom_model_env(user_config.CUSTOM_MODEL)
+    # Azure OpenAI
+    if user_config.AZURE_OPENAI_API_KEY:
+        set_azure_openai_api_key_env(user_config.AZURE_OPENAI_API_KEY)
+    if user_config.AZURE_OPENAI_ENDPOINT:
+        set_azure_openai_endpoint_env(user_config.AZURE_OPENAI_ENDPOINT)
+    if user_config.AZURE_OPENAI_DEPLOYMENT:
+        set_azure_openai_deployment_env(user_config.AZURE_OPENAI_DEPLOYMENT)
+    if user_config.AZURE_OPENAI_API_VERSION:
+        set_azure_openai_api_version_env(user_config.AZURE_OPENAI_API_VERSION)
+    if user_config.AZURE_OPENAI_IMAGE_DEPLOYMENT:
+        set_azure_openai_image_deployment_env(user_config.AZURE_OPENAI_IMAGE_DEPLOYMENT)
+    if user_config.AZURE_OPENAI_IMAGE_API_VERSION:
+        set_azure_openai_image_api_version_env(user_config.AZURE_OPENAI_IMAGE_API_VERSION)
     if user_config.DISABLE_IMAGE_GENERATION is not None:
         set_disable_image_generation_env(str(user_config.DISABLE_IMAGE_GENERATION))
     if user_config.IMAGE_PROVIDER:

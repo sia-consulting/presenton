@@ -38,6 +38,14 @@ def is_comfyui_selected() -> bool:
     return ImageProvider.COMFYUI == get_selected_image_provider()
 
 
+def is_azure_dalle3_selected() -> bool:
+    return ImageProvider.AZURE_DALLE3 == get_selected_image_provider()
+
+
+def is_azure_gpt_image_selected() -> bool:
+    return ImageProvider.AZURE_GPT_IMAGE == get_selected_image_provider()
+
+
 def get_selected_image_provider() -> ImageProvider | None:
     """
     Get the selected image provider from environment variables.
