@@ -180,8 +180,8 @@ class ImageGenerationService:
             azure_endpoint=get_azure_openai_endpoint_env(),
             api_version=get_azure_openai_image_api_version_env() or "2024-02-15-preview",
         )
-        # Azure OpenAI image generation - don't use response_format as it's not
-        # supported by all deployments/API versions. Download from URL instead.
+        # Azure OpenAI image generation - try b64_json first, fall back to URL
+        # Some deployments (like GPT Image) return b64_json, others return URL
         result = await client.images.generate(
             model=deployment,
             prompt=prompt,
@@ -190,17 +190,28 @@ class ImageGenerationService:
             size="1024x1024",
         )
         image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
-        # Download the image from URL returned by Azure
-        async with aiohttp.ClientSession() as session:
-            async with session.get(result.data[0].url) as response:
-                if response.status == 200:
-                    with open(image_path, "wb") as f:
-                        f.write(await response.read())
-                else:
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Failed to download image from Azure: {response.status}",
-                    )
+        # Check for b64_json first (some models like GPT Image return this)
+        # Use explicit None check for clarity
+        if result.data[0].b64_json is not None:
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(result.data[0].b64_json))
+        elif result.data[0].url is not None:
+            # Download the image from URL returned by Azure
+            async with aiohttp.ClientSession() as session:
+                async with session.get(result.data[0].url) as response:
+                    if response.status == 200:
+                        with open(image_path, "wb") as f:
+                            f.write(await response.read())
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to download image from Azure: {response.status}",
+                        )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Azure OpenAI returned no image data (neither b64_json nor URL)",
+            )
         return image_path
 
     async def generate_image_azure_dalle3(
