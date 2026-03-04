@@ -123,7 +123,6 @@ class ImageGenerationService:
         with open(image_path, "wb") as f:
             f.write(base64.b64decode(result.data[0].b64_json))
         return image_path
-        return image_path
 
     async def generate_image_openai_dalle3(
         self, prompt: str, output_directory: str
