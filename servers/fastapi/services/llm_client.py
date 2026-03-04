@@ -1596,6 +1596,13 @@ class LLMClient:
                 return self._stream_custom(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
+            case LLMProvider.AZURE_OPENAI:
+                return self._stream_openai(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    tools=parsed_tools,
+                )
 
     # ? Stream Structured Content
     async def _stream_openai_structured(
@@ -2313,6 +2320,15 @@ class LLMClient:
                     messages=messages,
                     response_format=response_format,
                     strict=strict,
+                    max_tokens=max_tokens,
+                )
+            case LLMProvider.AZURE_OPENAI:
+                return self._stream_openai_structured(
+                    model=model,
+                    messages=messages,
+                    response_format=response_format,
+                    strict=strict,
+                    tools=parsed_tools,
                     max_tokens=max_tokens,
                 )
 
