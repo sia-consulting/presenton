@@ -138,3 +138,29 @@ def get_codex_account_id_env():
 
 def get_codex_model_env():
     return os.getenv("CODEX_MODEL")
+
+
+# Azure OpenAI
+def get_azure_openai_api_key_env():
+    return os.getenv("AZURE_OPENAI_API_KEY")
+
+
+def get_azure_openai_endpoint_env():
+    return os.getenv("AZURE_OPENAI_ENDPOINT")
+
+
+def get_azure_openai_deployment_env():
+    return os.getenv("AZURE_OPENAI_DEPLOYMENT")
+
+
+def get_azure_openai_api_version_env():
+    return os.getenv("AZURE_OPENAI_API_VERSION")
+
+
+# Azure OpenAI Image Generation
+def get_azure_openai_image_deployment_env():
+    return os.getenv("AZURE_OPENAI_IMAGE_DEPLOYMENT")
+
+
+def get_azure_openai_image_api_version_env():
+    return os.getenv("AZURE_OPENAI_IMAGE_API_VERSION")

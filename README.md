@@ -78,6 +78,27 @@ docker run -it --name presenton -p 5000:80  -v "./app_data:/app_data" ghcr.io/pr
 docker run -it --name presenton -p 5000:80 -v "${PWD}\app_data:/app_data" ghcr.io/presenton/presenton:latest
 ```
 
+##### Using the PowerShell Build Script (Windows):
+
+For convenience, a PowerShell script is provided to build and run the Docker container:
+
+```powershell
+# Build and run the container
+.\scripts\docker-build.ps1 -Build -Run
+
+# Run only (if image already built)
+.\scripts\docker-build.ps1 -Run
+
+# Run with GPU support
+.\scripts\docker-build.ps1 -Run -GPU
+
+# Run in background (detached mode)
+.\scripts\docker-build.ps1 -Run -Detach
+
+# Run with Codex OAuth support
+.\scripts\docker-build.ps1 -Run -EnableCodex
+```
+
 #### 2. Open Presenton
 
 Open http://localhost:5000 on browser of your choice to use Presenton.
@@ -139,7 +160,7 @@ Outputs are written to `electron/dist` (or as per your electron-builder config).
 These settings apply to both Docker and the Electron app's backend. You may want to directly provide your API KEYS as environment variables and keep them hidden. You can set these environment variables to achieve it.
 
 - **CAN_CHANGE_KEYS=[true/false]**: Set this to **false** if you want to keep API Keys hidden and make them unmodifiable.
-- **LLM=[openai/google/anthropic/ollama/custom]**: Select **LLM** of your choice.
+- **LLM=[openai/google/anthropic/ollama/custom/azure_openai]**: Select **LLM** of your choice.
 - **OPENAI_API_KEY=[Your OpenAI API Key]**: Provide this if **LLM** is set to **openai**
 - **OPENAI_MODEL=[OpenAI Model ID]**: Provide this if **LLM** is set to **openai** (default: "gpt-4.1")
 - **GOOGLE_API_KEY=[Your Google API Key]**: Provide this if **LLM** is set to **google**
@@ -151,6 +172,10 @@ These settings apply to both Docker and the Electron app's backend. You may want
 - **CUSTOM_LLM_URL=[Custom OpenAI Compatible URL]**: Provide this if **LLM** is set to **custom**
 - **CUSTOM_LLM_API_KEY=[Custom OpenAI Compatible API KEY]**: Provide this if **LLM** is set to **custom**
 - **CUSTOM_MODEL=[Custom Model ID]**: Provide this if **LLM** is set to **custom**
+- **AZURE_OPENAI_API_KEY=[Your Azure OpenAI API Key]**: Provide this if **LLM** is set to **azure_openai**
+- **AZURE_OPENAI_ENDPOINT=[Your Azure OpenAI Endpoint]**: Provide this if **LLM** is set to **azure_openai** (e.g., "https://your-resource.openai.azure.com")
+- **AZURE_OPENAI_DEPLOYMENT=[Your Azure OpenAI Deployment Name]**: Provide this if **LLM** is set to **azure_openai**
+- **AZURE_OPENAI_API_VERSION=[Azure OpenAI API Version]**: Optional API version for Azure OpenAI (default: "2024-02-15-preview")
 - **TOOL_CALLS=[Enable/Disable Tool Calls on Custom LLM]**: If **true**, **LLM** will use Tool Call instead of Json Schema for Structured Output.
 - **DISABLE_THINKING=[Enable/Disable Thinking on Custom LLM]**: If **true**, Thinking will be disabled.
 - **WEB_GROUNDING=[Enable/Disable Web Search for OpenAI, Google And Anthropic]**: If **true**, LLM will be able to search web for better results.
@@ -158,7 +183,7 @@ These settings apply to both Docker and the Electron app's backend. You may want
 You can also set the following environment variables to customize the image generation provider and API keys:
 
 - **DISABLE_IMAGE_GENERATION**: If **true**, Image Generation will be disabled for slides.
-- **IMAGE_PROVIDER=[dall-e-3/gpt-image-1.5/gemini_flash/nanobanana_pro/pexels/pixabay/comfyui]**: Select the image provider of your choice.
+- **IMAGE_PROVIDER=[dall-e-3/gpt-image-1.5/gemini_flash/nanobanana_pro/pexels/pixabay/comfyui/azure-dall-e-3/azure-gpt-image]**: Select the image provider of your choice.
   - Required if **DISABLE_IMAGE_GENERATION** is not set to **true**.
 - **OPENAI_API_KEY=[Your OpenAI API Key]**: Required if using **dall-e-3** or **gpt-image-1.5** as the image provider.
 - **DALL_E_3_QUALITY=[standard/hd]**: Optional quality setting for **dall-e-3** (default: `standard`).
@@ -167,12 +192,14 @@ You can also set the following environment variables to customize the image gene
 - **PEXELS_API_KEY=[Your Pexels API Key]**: Required if using **pexels** as the image provider.
 - **PIXABAY_API_KEY=[Your Pixabay API Key]**: Required if using **pixabay** as the image provider.
 - **COMFYUI_URL=[Your ComfyUI server URL]** and **COMFYUI_WORKFLOW=[Workflow JSON]**: Required if using **comfyui** to route prompts to a self-hosted ComfyUI workflow.
+- **AZURE_OPENAI_IMAGE_DEPLOYMENT=[Your Azure OpenAI Image Deployment Name]**: Required if using **azure-dall-e-3** or **azure-gpt-image** as the image provider.
+- **AZURE_OPENAI_IMAGE_API_VERSION=[Azure OpenAI Image API Version]**: Optional API version for Azure OpenAI image generation (default: "2024-02-15-preview").
 
 You can disable anonymous telemetry using the following environment variable:
 
 - **DISABLE_ANONYMOUS_TELEMETRY=[true/false]**: Set this to **true** to disable anonymous telemetry.
 
-> **Note:** You can freely choose both the LLM (text generation) and the image provider. Supported image providers: **dall-e-3**, **gpt-image-1.5** (OpenAI), **gemini_flash**, **nanobanana_pro** (Google), **pexels**, **pixabay**, and **comfyui** (self-hosted).
+> **Note:** You can freely choose both the LLM (text generation) and the image provider. Supported image providers: **dall-e-3**, **gpt-image-1.5** (OpenAI), **azure-dall-e-3**, **azure-gpt-image** (Azure OpenAI), **gemini_flash**, **nanobanana_pro** (Google), **pexels**, **pixabay**, and **comfyui** (self-hosted).
 
 ### Using OpenAI
 
@@ -202,6 +229,12 @@ docker run -it --name presenton -p 5000:80 -e LLM="anthropic" -e ANTHROPIC_API_K
 
 ```bash
 docker run -it -p 5000:80 -e CAN_CHANGE_KEYS="false"  -e LLM="custom" -e CUSTOM_LLM_URL="http://*****" -e CUSTOM_LLM_API_KEY="*****" -e CUSTOM_MODEL="llama3.2:3b" -e IMAGE_PROVIDER="pexels" -e  PEXELS_API_KEY="********" -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
+```
+
+### Using Azure OpenAI
+
+```bash
+docker run -it --name presenton -p 5000:80 -e LLM="azure_openai" -e AZURE_OPENAI_API_KEY="******" -e AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com" -e AZURE_OPENAI_DEPLOYMENT="gpt-4" -e IMAGE_PROVIDER="azure-dall-e-3" -e AZURE_OPENAI_IMAGE_DEPLOYMENT="dall-e-3" -e CAN_CHANGE_KEYS="false" -v "./app_data:/app_data" ghcr.io/presenton/presenton:latest
 ```
 
 #### Running Presenton with GPU Support

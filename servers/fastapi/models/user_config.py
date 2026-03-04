@@ -26,6 +26,15 @@ class UserConfig(BaseModel):
     CUSTOM_LLM_API_KEY: Optional[str] = None
     CUSTOM_MODEL: Optional[str] = None
 
+    # Azure OpenAI
+    AZURE_OPENAI_API_KEY: Optional[str] = None
+    AZURE_OPENAI_ENDPOINT: Optional[str] = None
+    AZURE_OPENAI_DEPLOYMENT: Optional[str] = None
+    AZURE_OPENAI_API_VERSION: Optional[str] = None
+    # Azure OpenAI Image Generation
+    AZURE_OPENAI_IMAGE_DEPLOYMENT: Optional[str] = None
+    AZURE_OPENAI_IMAGE_API_VERSION: Optional[str] = None
+
     # Image Provider
     DISABLE_IMAGE_GENERATION: Optional[bool] = None
     IMAGE_PROVIDER: Optional[str] = None

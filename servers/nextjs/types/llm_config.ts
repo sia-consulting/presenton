@@ -22,6 +22,15 @@ export interface LLMConfig {
   CUSTOM_LLM_API_KEY?: string;
   CUSTOM_MODEL?: string;
 
+  // Azure OpenAI
+  AZURE_OPENAI_API_KEY?: string;
+  AZURE_OPENAI_ENDPOINT?: string;
+  AZURE_OPENAI_DEPLOYMENT?: string;
+  AZURE_OPENAI_API_VERSION?: string;
+  // Azure OpenAI Image Generation
+  AZURE_OPENAI_IMAGE_DEPLOYMENT?: string;
+  AZURE_OPENAI_IMAGE_API_VERSION?: string;
+
   // Image providers
   DISABLE_IMAGE_GENERATION?: boolean;
   IMAGE_PROVIDER?: string;
