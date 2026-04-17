@@ -140,6 +140,21 @@ def get_codex_model_env():
     return os.getenv("CODEX_MODEL")
 
 
+def get_azure_ai_foundry_endpoint_env() -> str:
+    """Azure AI Foundry project endpoint (e.g. https://automagisch.services.ai.azure.com/)"""
+    return os.getenv("AZURE_AI_FOUNDRY_ENDPOINT", "")
+
+
+def get_azure_ai_foundry_model_env() -> str:
+    """Azure AI Foundry deployment/model name (e.g. gpt-5.4)"""
+    return os.getenv("AZURE_AI_FOUNDRY_MODEL", "")
+
+
+def get_azure_managed_identity_client_id_env() -> str:
+    """Optional: User-assigned managed identity client ID for DefaultAzureCredential"""
+    return os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "")
+
+
 def get_migrate_database_on_startup_env():
     return os.getenv("MIGRATE_DATABASE_ON_STARTUP")
 

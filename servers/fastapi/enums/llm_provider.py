@@ -8,3 +8,4 @@ class LLMProvider(Enum):
     ANTHROPIC = "anthropic"
     CUSTOM = "custom"
     CODEX = "codex"
+    AZURE_AI_FOUNDRY = "azure_ai_foundry"
