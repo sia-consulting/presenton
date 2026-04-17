@@ -80,7 +80,7 @@ async def set_data_directory(path: str) -> None:
     _pool_kwargs = {}
 
     sql_engine = create_async_engine(
-        new_url, connect_args=new_connect_args
+        new_url, connect_args=new_connect_args, **_pool_kwargs
     )
     async_session_maker = async_sessionmaker(sql_engine, expire_on_commit=False)
 

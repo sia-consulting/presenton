@@ -661,6 +661,8 @@ class LLMClient:
             elif isinstance(message, LLMUserMessage):
                 azure_messages.append(AzureUserMessage(content=message.content))
             elif isinstance(message, OpenAIAssistantMessage):
+                # OpenAIAssistantMessage is the shared assistant message type used
+                # across providers (e.g. Ollama, Custom also reuse it).
                 azure_messages.append(
                     AzureAssistantMessage(content=message.content or "")
                 )
