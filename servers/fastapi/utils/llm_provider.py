@@ -8,6 +8,7 @@ from constants.llm import (
 from enums.llm_provider import LLMProvider
 from utils.get_env import (
     get_anthropic_model_env,
+    get_azure_ai_foundry_model_env,
     get_codex_model_env,
     get_custom_model_env,
     get_google_model_env,
@@ -23,7 +24,7 @@ def get_llm_provider():
     except:
         raise HTTPException(
             status_code=500,
-            detail=f"Invalid LLM provider. Please select one of: openai, google, anthropic, ollama, custom, codex",
+            detail=f"Invalid LLM provider. Please select one of: openai, google, anthropic, ollama, custom, codex, azure_ai_foundry",
         )
 
 
@@ -51,6 +52,10 @@ def is_codex_selected():
     return get_llm_provider() == LLMProvider.CODEX
 
 
+def is_azure_ai_foundry_selected():
+    return get_llm_provider() == LLMProvider.AZURE_AI_FOUNDRY
+
+
 def get_model():
     selected_llm = get_llm_provider()
     if selected_llm == LLMProvider.OPENAI:
@@ -65,8 +70,10 @@ def get_model():
         return get_custom_model_env()
     elif selected_llm == LLMProvider.CODEX:
         return get_codex_model_env()
+    elif selected_llm == LLMProvider.AZURE_AI_FOUNDRY:
+        return get_azure_ai_foundry_model_env()
     else:
         raise HTTPException(
             status_code=500,
-            detail=f"Invalid LLM provider. Please select one of: openai, google, anthropic, ollama, custom, codex",
+            detail=f"Invalid LLM provider. Please select one of: openai, google, anthropic, ollama, custom, codex, azure_ai_foundry",
         )

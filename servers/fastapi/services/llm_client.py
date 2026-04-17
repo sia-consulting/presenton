@@ -44,6 +44,8 @@ from utils.async_iterator import iterator_to_async
 from utils.dummy_functions import do_nothing_async
 from utils.get_env import (
     get_anthropic_api_key_env,
+    get_azure_ai_foundry_endpoint_env,
+    get_azure_managed_identity_client_id_env,
     get_codex_access_token_env,
     get_codex_account_id_env,
     get_codex_refresh_token_env,
@@ -92,6 +94,7 @@ class LLMClient:
             self.llm_provider == LLMProvider.OLLAMA
             or self.llm_provider == LLMProvider.CUSTOM
             or self.llm_provider == LLMProvider.CODEX
+            or self.llm_provider == LLMProvider.AZURE_AI_FOUNDRY
         ):
             return False
         return parse_bool_or_none(get_web_grounding_env()) or False
@@ -115,10 +118,12 @@ class LLMClient:
                 return self._get_custom_client()
             case LLMProvider.CODEX:
                 return self._get_codex_client()
+            case LLMProvider.AZURE_AI_FOUNDRY:
+                return self._get_azure_ai_foundry_client()
             case _:
                 raise HTTPException(
                     status_code=400,
-                    detail="LLM Provider must be either openai, google, anthropic, ollama, custom, or codex",
+                    detail="LLM Provider must be either openai, google, anthropic, ollama, custom, codex, or azure_ai_foundry",
                 )
 
     def _get_openai_client(self):
@@ -229,6 +234,23 @@ class LLMClient:
             default_headers=default_headers,
             timeout=120.0,
         )
+
+    def _get_azure_ai_foundry_client(self):
+        from azure.ai.inference.aio import ChatCompletionsClient
+        from azure.identity.aio import DefaultAzureCredential
+
+        endpoint = get_azure_ai_foundry_endpoint_env()
+        if not endpoint:
+            raise HTTPException(
+                status_code=400,
+                detail="AZURE_AI_FOUNDRY_ENDPOINT is not set",
+            )
+        managed_identity_client_id = get_azure_managed_identity_client_id_env()
+        credential_kwargs = {}
+        if managed_identity_client_id:
+            credential_kwargs["managed_identity_client_id"] = managed_identity_client_id
+        credential = DefaultAzureCredential(**credential_kwargs)
+        return ChatCompletionsClient(endpoint=endpoint, credential=credential)
 
     # ? Prompts
     def _get_system_prompt(self, messages: List[LLMMessage]) -> str:
@@ -625,6 +647,144 @@ class LLMClient:
 
         return "".join(text_parts) or None
 
+    def _get_azure_ai_foundry_messages(self, messages: List[LLMMessage]) -> list:
+        from azure.ai.inference.models import (
+            SystemMessage as AzureSystemMessage,
+            UserMessage as AzureUserMessage,
+            AssistantMessage as AzureAssistantMessage,
+        )
+
+        azure_messages = []
+        for message in messages:
+            if isinstance(message, LLMSystemMessage):
+                azure_messages.append(AzureSystemMessage(content=message.content))
+            elif isinstance(message, LLMUserMessage):
+                azure_messages.append(AzureUserMessage(content=message.content))
+            elif isinstance(message, OpenAIAssistantMessage):
+                azure_messages.append(
+                    AzureAssistantMessage(content=message.content or "")
+                )
+            else:
+                content = getattr(message, "content", "") or ""
+                if content:
+                    azure_messages.append(AzureUserMessage(content=content))
+        return azure_messages
+
+    async def _generate_azure_ai_foundry(
+        self,
+        model: str,
+        messages: List[LLMMessage],
+        max_tokens: Optional[int] = None,
+        response_format=None,
+        depth: int = 0,
+    ) -> str | None:
+        from azure.ai.inference.aio import ChatCompletionsClient
+
+        client: ChatCompletionsClient = self._client
+        azure_messages = self._get_azure_ai_foundry_messages(messages)
+
+        kwargs: Dict[str, Any] = {
+            "messages": azure_messages,
+            "model": model,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+        if response_format is not None:
+            kwargs["response_format"] = response_format
+
+        response = await client.complete(**kwargs)
+
+        if not response.choices:
+            return None
+
+        return response.choices[0].message.content
+
+    async def _generate_structured_azure_ai_foundry(
+        self,
+        model: str,
+        messages: List[LLMMessage],
+        response_format: dict,
+        strict: bool = False,
+        max_tokens: Optional[int] = None,
+        depth: int = 0,
+    ) -> dict | None:
+        from azure.ai.inference.models import ChatCompletionsResponseFormatJSON
+
+        json_response_format = ChatCompletionsResponseFormatJSON(schema=response_format)
+
+        content = await self._generate_azure_ai_foundry(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            response_format=json_response_format,
+            depth=depth,
+        )
+
+        if content:
+            return dict(dirtyjson.loads(content))
+        return None
+
+    async def _stream_azure_ai_foundry(
+        self,
+        model: str,
+        messages: List[LLMMessage],
+        max_tokens: Optional[int] = None,
+        depth: int = 0,
+    ) -> AsyncGenerator[str, None]:
+        from azure.ai.inference.aio import ChatCompletionsClient
+
+        client: ChatCompletionsClient = self._client
+        azure_messages = self._get_azure_ai_foundry_messages(messages)
+
+        kwargs: Dict[str, Any] = {
+            "messages": azure_messages,
+            "model": model,
+            "stream": True,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+
+        response = await client.complete(**kwargs)
+
+        async for chunk in response:
+            if chunk.choices:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    yield delta.content
+
+    async def _stream_azure_ai_foundry_structured(
+        self,
+        model: str,
+        messages: List[LLMMessage],
+        response_format: dict,
+        strict: bool = False,
+        max_tokens: Optional[int] = None,
+        depth: int = 0,
+    ) -> AsyncGenerator[str, None]:
+        from azure.ai.inference.aio import ChatCompletionsClient
+        from azure.ai.inference.models import ChatCompletionsResponseFormatJSON
+
+        client: ChatCompletionsClient = self._client
+        azure_messages = self._get_azure_ai_foundry_messages(messages)
+        json_response_format = ChatCompletionsResponseFormatJSON(schema=response_format)
+
+        kwargs: Dict[str, Any] = {
+            "messages": azure_messages,
+            "model": model,
+            "stream": True,
+            "response_format": json_response_format,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+
+        response = await client.complete(**kwargs)
+
+        async for chunk in response:
+            if chunk.choices:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    yield delta.content
+
     async def generate(
         self,
         model: str,
@@ -670,6 +830,10 @@ class LLMClient:
                 )
             case LLMProvider.CUSTOM:
                 content = await self._generate_custom(
+                    model=model, messages=messages, max_tokens=max_tokens
+                )
+            case LLMProvider.AZURE_AI_FOUNDRY:
+                content = await self._generate_azure_ai_foundry(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
         if content is None:
@@ -1126,6 +1290,14 @@ class LLMClient:
                     )
                 case LLMProvider.CUSTOM:
                     content = await self._generate_custom_structured(
+                        model=model,
+                        messages=messages,
+                        response_format=response_format,
+                        strict=strict,
+                        max_tokens=max_tokens,
+                    )
+                case LLMProvider.AZURE_AI_FOUNDRY:
+                    content = await self._generate_structured_azure_ai_foundry(
                         model=model,
                         messages=messages,
                         response_format=response_format,
@@ -1600,6 +1772,10 @@ class LLMClient:
                 )
             case LLMProvider.CUSTOM:
                 return self._stream_custom(
+                    model=model, messages=messages, max_tokens=max_tokens
+                )
+            case LLMProvider.AZURE_AI_FOUNDRY:
+                return self._stream_azure_ai_foundry(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
 
@@ -2315,6 +2491,14 @@ class LLMClient:
                 )
             case LLMProvider.CUSTOM:
                 return self._stream_custom_structured(
+                    model=model,
+                    messages=messages,
+                    response_format=response_format,
+                    strict=strict,
+                    max_tokens=max_tokens,
+                )
+            case LLMProvider.AZURE_AI_FOUNDRY:
+                return self._stream_azure_ai_foundry_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,

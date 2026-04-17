@@ -55,6 +55,36 @@ async def get_container_db_async_session() -> AsyncGenerator[AsyncSession, None]
         yield session
 
 
+async def set_data_directory(path: str) -> None:
+    """Reconfigure the main SQL engine to use a SQLite database inside *path*.
+
+    This is intended for programmatic / library usage (e.g. an external MCP
+    server that creates a temp directory per request).  Call this **before**
+    ``create_db_and_tables()`` so the tables are created in the new location.
+
+    The existing default behaviour (env var / static directory) is unchanged
+    when this function is never called.
+    """
+    global sql_engine, async_session_maker, database_url, connect_args, _pool_kwargs
+
+    os.makedirs(path, exist_ok=True)
+
+    new_url = "sqlite+aiosqlite:///" + os.path.join(path, "fastapi.db")
+    new_connect_args = {"check_same_thread": False}
+
+    # Dispose the old engine before replacing it.
+    await sql_engine.dispose()
+
+    database_url = new_url
+    connect_args = new_connect_args
+    _pool_kwargs = {}
+
+    sql_engine = create_async_engine(
+        new_url, connect_args=new_connect_args
+    )
+    async_session_maker = async_sessionmaker(sql_engine, expire_on_commit=False)
+
+
 # Create Database and Tables
 async def create_db_and_tables():
     async with sql_engine.begin() as conn:
