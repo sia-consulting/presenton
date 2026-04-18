@@ -73,7 +73,9 @@ from utils.schema_utils import (
     flatten_json_schema,
     remove_titles_from_schema,
 )
+from utils.telemetry import get_tracer
 
+_tracer = get_tracer(__name__)
 
 
 class LLMClient:
@@ -794,56 +796,59 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         tools: Optional[List[type[LLMTool] | LLMDynamicTool]] = None,
     ):
-        parsed_tools = self.tool_calls_handler.parse_tools(tools)
+        with _tracer.start_as_current_span("llm.generate") as span:
+            span.set_attribute("llm.provider", self.llm_provider.value)
+            span.set_attribute("llm.model", model)
+            parsed_tools = self.tool_calls_handler.parse_tools(tools)
 
-        content = None
-        match self.llm_provider:
-            case LLMProvider.OPENAI:
-                content = await self._generate_openai(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    tools=parsed_tools,
+            content = None
+            match self.llm_provider:
+                case LLMProvider.OPENAI:
+                    content = await self._generate_openai(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        tools=parsed_tools,
+                    )
+                case LLMProvider.CODEX:
+                    content = await self._generate_codex(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        tools=parsed_tools,
+                    )
+                case LLMProvider.GOOGLE:
+                    content = await self._generate_google(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        tools=parsed_tools,
+                    )
+                case LLMProvider.ANTHROPIC:
+                    content = await self._generate_anthropic(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        tools=parsed_tools,
+                    )
+                case LLMProvider.OLLAMA:
+                    content = await self._generate_ollama(
+                        model=model, messages=messages, max_tokens=max_tokens
+                    )
+                case LLMProvider.CUSTOM:
+                    content = await self._generate_custom(
+                        model=model, messages=messages, max_tokens=max_tokens
+                    )
+                case LLMProvider.AZURE_AI_FOUNDRY:
+                    content = await self._generate_azure_ai_foundry(
+                        model=model, messages=messages, max_tokens=max_tokens
+                    )
+            if content is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="LLM did not return any content",
                 )
-            case LLMProvider.CODEX:
-                content = await self._generate_codex(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    tools=parsed_tools,
-                )
-            case LLMProvider.GOOGLE:
-                content = await self._generate_google(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    tools=parsed_tools,
-                )
-            case LLMProvider.ANTHROPIC:
-                content = await self._generate_anthropic(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    tools=parsed_tools,
-                )
-            case LLMProvider.OLLAMA:
-                content = await self._generate_ollama(
-                    model=model, messages=messages, max_tokens=max_tokens
-                )
-            case LLMProvider.CUSTOM:
-                content = await self._generate_custom(
-                    model=model, messages=messages, max_tokens=max_tokens
-                )
-            case LLMProvider.AZURE_AI_FOUNDRY:
-                content = await self._generate_azure_ai_foundry(
-                    model=model, messages=messages, max_tokens=max_tokens
-                )
-        if content is None:
-            raise HTTPException(
-                status_code=400,
-                detail="LLM did not return any content",
-            )
-        return content
+            return content
 
     # ? Generate Structured Content
     async def _generate_openai_structured(
@@ -1243,80 +1248,83 @@ class LLMClient:
         tools: Optional[List[type[LLMTool] | LLMDynamicTool]] = None,
         max_tokens: Optional[int] = None,
     ) -> dict:
-        parsed_tools = self.tool_calls_handler.parse_tools(tools)
+        with _tracer.start_as_current_span("llm.generate_structured") as span:
+            span.set_attribute("llm.provider", self.llm_provider.value)
+            span.set_attribute("llm.model", model)
+            parsed_tools = self.tool_calls_handler.parse_tools(tools)
 
-        for attempt in range(3):
-            content = None
-            match self.llm_provider:
-                case LLMProvider.OPENAI:
-                    content = await self._generate_openai_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        strict=strict,
-                        tools=parsed_tools,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.CODEX:
-                    content = await self._generate_codex_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        strict=strict,
-                        tools=parsed_tools,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.GOOGLE:
-                    content = await self._generate_google_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        tools=parsed_tools,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.ANTHROPIC:
-                    content = await self._generate_anthropic_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        tools=parsed_tools,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.OLLAMA:
-                    content = await self._generate_ollama_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        strict=strict,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.CUSTOM:
-                    content = await self._generate_custom_structured(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        strict=strict,
-                        max_tokens=max_tokens,
-                    )
-                case LLMProvider.AZURE_AI_FOUNDRY:
-                    content = await self._generate_structured_azure_ai_foundry(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        strict=strict,
-                        max_tokens=max_tokens,
-                    )
+            for attempt in range(3):
+                content = None
+                match self.llm_provider:
+                    case LLMProvider.OPENAI:
+                        content = await self._generate_openai_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            strict=strict,
+                            tools=parsed_tools,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.CODEX:
+                        content = await self._generate_codex_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            strict=strict,
+                            tools=parsed_tools,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.GOOGLE:
+                        content = await self._generate_google_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            tools=parsed_tools,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.ANTHROPIC:
+                        content = await self._generate_anthropic_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            tools=parsed_tools,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.OLLAMA:
+                        content = await self._generate_ollama_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            strict=strict,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.CUSTOM:
+                        content = await self._generate_custom_structured(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            strict=strict,
+                            max_tokens=max_tokens,
+                        )
+                    case LLMProvider.AZURE_AI_FOUNDRY:
+                        content = await self._generate_structured_azure_ai_foundry(
+                            model=model,
+                            messages=messages,
+                            response_format=response_format,
+                            strict=strict,
+                            max_tokens=max_tokens,
+                        )
 
-            if content is not None:
-                return content
+                if content is not None:
+                    return content
 
-            if attempt < 2:
-                await asyncio.sleep(0.5 * (attempt + 1))
+                if attempt < 2:
+                    await asyncio.sleep(0.5 * (attempt + 1))
 
-        raise HTTPException(
-            status_code=400,
-            detail="LLM did not return any content",
-        )
+            raise HTTPException(
+                status_code=400,
+                detail="LLM did not return any content",
+            )
 
     # ? Stream Unstructured Content
     async def _stream_openai(
@@ -1737,49 +1745,64 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         tools: Optional[List[type[LLMTool] | LLMDynamicTool]] = None,
     ):
+        span = _tracer.start_span("llm.stream")
+        span.set_attribute("llm.provider", self.llm_provider.value)
+        span.set_attribute("llm.model", model)
         parsed_tools = self.tool_calls_handler.parse_tools(tools)
 
         match self.llm_provider:
             case LLMProvider.OPENAI:
-                return self._stream_openai(
+                gen = self._stream_openai(
                     model=model,
                     messages=messages,
                     max_tokens=max_tokens,
                     tools=parsed_tools,
                 )
             case LLMProvider.CODEX:
-                return self._stream_codex(
+                gen = self._stream_codex(
                     model=model,
                     messages=messages,
                     max_tokens=max_tokens,
                     tools=parsed_tools,
                 )
             case LLMProvider.GOOGLE:
-                return self._stream_google(
+                gen = self._stream_google(
                     model=model,
                     messages=messages,
                     max_tokens=max_tokens,
                     tools=parsed_tools,
                 )
             case LLMProvider.ANTHROPIC:
-                return self._stream_anthropic(
+                gen = self._stream_anthropic(
                     model=model,
                     messages=messages,
                     max_tokens=max_tokens,
                     tools=parsed_tools,
                 )
             case LLMProvider.OLLAMA:
-                return self._stream_ollama(
+                gen = self._stream_ollama(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
             case LLMProvider.CUSTOM:
-                return self._stream_custom(
+                gen = self._stream_custom(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
             case LLMProvider.AZURE_AI_FOUNDRY:
-                return self._stream_azure_ai_foundry(
+                gen = self._stream_azure_ai_foundry(
                     model=model, messages=messages, max_tokens=max_tokens
                 )
+            case _:
+                span.end()
+                return
+
+        async def _traced_stream():
+            try:
+                async for chunk in gen:
+                    yield chunk
+            finally:
+                span.end()
+
+        return _traced_stream()
 
     # ? Stream Structured Content
     async def _stream_openai_structured(
@@ -2446,11 +2469,14 @@ class LLMClient:
         tools: Optional[List[type[LLMTool] | LLMDynamicTool]] = None,
         max_tokens: Optional[int] = None,
     ):
+        span = _tracer.start_span("llm.stream_structured")
+        span.set_attribute("llm.provider", self.llm_provider.value)
+        span.set_attribute("llm.model", model)
         parsed_tools = self.tool_calls_handler.parse_tools(tools)
 
         match self.llm_provider:
             case LLMProvider.OPENAI:
-                return self._stream_openai_structured(
+                gen = self._stream_openai_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2459,7 +2485,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.CODEX:
-                return self._stream_codex_structured(
+                gen = self._stream_codex_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2468,7 +2494,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.GOOGLE:
-                return self._stream_google_structured(
+                gen = self._stream_google_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2476,7 +2502,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.ANTHROPIC:
-                return self._stream_anthropic_structured(
+                gen = self._stream_anthropic_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2484,7 +2510,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.OLLAMA:
-                return self._stream_ollama_structured(
+                gen = self._stream_ollama_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2492,7 +2518,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.CUSTOM:
-                return self._stream_custom_structured(
+                gen = self._stream_custom_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
@@ -2500,13 +2526,25 @@ class LLMClient:
                     max_tokens=max_tokens,
                 )
             case LLMProvider.AZURE_AI_FOUNDRY:
-                return self._stream_azure_ai_foundry_structured(
+                gen = self._stream_azure_ai_foundry_structured(
                     model=model,
                     messages=messages,
                     response_format=response_format,
                     strict=strict,
                     max_tokens=max_tokens,
                 )
+            case _:
+                span.end()
+                return
+
+        async def _traced_stream():
+            try:
+                async for chunk in gen:
+                    yield chunk
+            finally:
+                span.end()
+
+        return _traced_stream()
 
     # ? Web search
     async def _search_openai(self, query: str) -> str:

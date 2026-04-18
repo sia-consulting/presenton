@@ -7,6 +7,10 @@ from docling.document_converter import (
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.datamodel.base_models import InputFormat
 
+from utils.telemetry import get_tracer
+
+_tracer = get_tracer(__name__)
+
 
 class DoclingService:
     def __init__(self):
@@ -29,5 +33,7 @@ class DoclingService:
         )
 
     def parse_to_markdown(self, file_path: str) -> str:
-        result = self.converter.convert(file_path)
-        return result.document.export_to_markdown()
+        with _tracer.start_as_current_span("docling.parse_to_markdown") as span:
+            span.set_attribute("document.path", file_path)
+            result = self.converter.convert(file_path)
+            return result.document.export_to_markdown()

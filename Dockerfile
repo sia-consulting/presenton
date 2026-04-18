@@ -30,7 +30,11 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 # Install dependencies for FastAPI
 RUN pip install alembic aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
     pathvalidate pdfplumber chromadb sqlmodel \
-    anthropic google-genai openai fastmcp dirtyjson
+    anthropic google-genai openai fastmcp dirtyjson \
+    opentelemetry-api opentelemetry-sdk \
+    opentelemetry-instrumentation-fastapi opentelemetry-instrumentation-httpx \
+    opentelemetry-instrumentation-sqlalchemy opentelemetry-instrumentation-logging \
+    azure-monitor-opentelemetry-exporter
 RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install dependencies for Next.js

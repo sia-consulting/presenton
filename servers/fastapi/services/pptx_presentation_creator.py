@@ -47,7 +47,10 @@ from utils.image_utils import (
     round_image_corners,
     set_image_opacity,
 )
+from utils.telemetry import get_tracer
 import uuid
+
+_tracer = get_tracer(__name__)
 
 BLANK_SLIDE_LAYOUT = 6
 
@@ -250,14 +253,16 @@ class PptxPresentationCreator:
                     each_shape.picture.is_network = False
 
     async def create_ppt(self):
-        await self.fetch_network_assets()
+        with _tracer.start_as_current_span("pptx.create") as span:
+            span.set_attribute("pptx.slide_count", len(self._slide_models))
+            await self.fetch_network_assets()
 
-        for slide_model in self._slide_models:
-            # Adding global shapes to slide
-            if self._ppt_model.shapes:
-                slide_model.shapes.append(self._ppt_model.shapes)
+            for slide_model in self._slide_models:
+                # Adding global shapes to slide
+                if self._ppt_model.shapes:
+                    slide_model.shapes.append(self._ppt_model.shapes)
 
-            self.add_and_populate_slide(slide_model)
+                self.add_and_populate_slide(slide_model)
 
     def set_presentation_theme(self):
         slide_master = self._ppt.slide_master
@@ -628,5 +633,7 @@ class PptxPresentationCreator:
             print(f"Could not apply strikethrough: {e}")
 
     def save(self, path: str):
-        self._ppt.save(path)
-        self.fix_keynote_compatibility(path)
+        with _tracer.start_as_current_span("pptx.save") as span:
+            span.set_attribute("pptx.output_path", path)
+            self._ppt.save(path)
+            self.fix_keynote_compatibility(path)
