@@ -11,6 +11,9 @@ from constants.documents import (
     WORD_TYPES,
 )
 from services.docling_service import DoclingService
+from utils.telemetry import get_tracer
+
+_tracer = get_tracer(__name__)
 
 
 class DocumentsLoader:
@@ -38,36 +41,38 @@ class DocumentsLoader:
         load_images: bool = False,
     ):
         """If load_images is True, temp_dir must be provided"""
+        with _tracer.start_as_current_span("documents.load") as span:
+            span.set_attribute("documents.count", len(self._file_paths))
 
-        documents: List[str] = []
-        images: List[str] = []
+            documents: List[str] = []
+            images: List[str] = []
 
-        for file_path in self._file_paths:
-            if not os.path.exists(file_path):
-                raise HTTPException(
-                    status_code=404, detail=f"File {file_path} not found"
-                )
+            for file_path in self._file_paths:
+                if not os.path.exists(file_path):
+                    raise HTTPException(
+                        status_code=404, detail=f"File {file_path} not found"
+                    )
 
-            document = ""
-            imgs = []
+                document = ""
+                imgs = []
 
-            mime_type = mimetypes.guess_type(file_path)[0]
-            if mime_type in PDF_MIME_TYPES:
-                document, imgs = await self.load_pdf(
-                    file_path, load_text, load_images, temp_dir
-                )
-            elif mime_type in TEXT_MIME_TYPES:
-                document = await self.load_text(file_path)
-            elif mime_type in POWERPOINT_TYPES:
-                document = self.load_powerpoint(file_path)
-            elif mime_type in WORD_TYPES:
-                document = self.load_msword(file_path)
+                mime_type = mimetypes.guess_type(file_path)[0]
+                if mime_type in PDF_MIME_TYPES:
+                    document, imgs = await self.load_pdf(
+                        file_path, load_text, load_images, temp_dir
+                    )
+                elif mime_type in TEXT_MIME_TYPES:
+                    document = await self.load_text(file_path)
+                elif mime_type in POWERPOINT_TYPES:
+                    document = self.load_powerpoint(file_path)
+                elif mime_type in WORD_TYPES:
+                    document = self.load_msword(file_path)
 
-            documents.append(document)
-            images.append(imgs)
+                documents.append(document)
+                images.append(imgs)
 
-        self._documents = documents
-        self._images = images
+            self._documents = documents
+            self._images = images
 
     async def load_pdf(
         self,

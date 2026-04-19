@@ -5,9 +5,14 @@ from api.middlewares import UserConfigEnvUpdateMiddleware
 from api.v1.ppt.router import API_V1_PPT_ROUTER
 from api.v1.webhook.router import API_V1_WEBHOOK_ROUTER
 from api.v1.mock.router import API_V1_MOCK_ROUTER
+from middleware.auth import EntraJWTAuthMiddleware
+from utils.telemetry import setup_telemetry
 
 
 app = FastAPI(lifespan=app_lifespan)
+
+# OpenTelemetry + Azure Monitor (no-op when APPLICATIONINSIGHTS_CONNECTION_STRING is unset)
+setup_telemetry(app)
 
 
 # Routers
@@ -26,3 +31,6 @@ app.add_middleware(
 )
 
 app.add_middleware(UserConfigEnvUpdateMiddleware)
+
+# Entra ID JWT auth (opt-in: no-op when AZURE_AD_TENANT_ID is unset)
+app.add_middleware(EntraJWTAuthMiddleware)

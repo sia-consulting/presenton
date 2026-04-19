@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: false,
   distDir: ".next-build",
-  
+
+  experimental: {
+    instrumentationHook: true,
+  },
 
   // Rewrites for development - proxy font requests to FastAPI backend
   async rewrites() {

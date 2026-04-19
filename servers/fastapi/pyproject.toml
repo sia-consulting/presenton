@@ -26,6 +26,13 @@ dependencies = [
     "python-pptx>=1.0.2",
     "redis>=6.2.0",
     "sqlmodel>=0.0.24",
+    "opentelemetry-api>=1.41.0",
+    "opentelemetry-sdk>=1.41.0",
+    "opentelemetry-instrumentation-fastapi>=0.62b0",
+    "opentelemetry-instrumentation-httpx>=0.62b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.62b0",
+    "opentelemetry-instrumentation-logging>=0.62b0",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b51",
 ]
 
 [tool.uv]
@@ -36,4 +43,4 @@ url = "https://download.pytorch.org/whl/cpu"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["api*", "enums*", "models*", "services*", "constants*", "utils*"]
+include = ["api*", "enums*", "middleware*", "models*", "services*", "constants*", "utils*"]
