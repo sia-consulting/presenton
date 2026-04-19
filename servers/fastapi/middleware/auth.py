@@ -93,7 +93,10 @@ def _verify_rs256(token: str, n: int, e: int) -> Dict[str, Any]:
     if not em.startswith(b"\x00\x01"):
         raise ValueError("Invalid signature (bad prefix)")
     # Find the 0x00 separator after the padding
-    separator_idx = em.index(b"\x00", 2)
+    try:
+        separator_idx = em.index(b"\x00", 2)
+    except ValueError:
+        raise ValueError("Invalid signature (no separator)")
     padding_bytes = em[2:separator_idx]
     if not all(b == 0xFF for b in padding_bytes):
         raise ValueError("Invalid signature (bad padding)")
@@ -201,11 +204,11 @@ class EntraJWTAuthMiddleware(BaseHTTPMiddleware):
 
             payload = _verify_rs256(token, n, e)
 
-            # Validate standard claims
+            # Validate standard claims (±5-min clock skew tolerance)
             now = time.time()
-            if payload.get("exp", 0) < now:
+            if payload.get("exp", 0) < now - 300:
                 raise ValueError("Token has expired")
-            if payload.get("nbf", 0) > now + 300:  # 5-min clock skew
+            if payload.get("nbf", 0) > now + 300:
                 raise ValueError("Token not yet valid")
 
             # Validate audience (should be the client ID or api://<client_id>)
