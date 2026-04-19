@@ -5,6 +5,7 @@ from api.middlewares import UserConfigEnvUpdateMiddleware
 from api.v1.ppt.router import API_V1_PPT_ROUTER
 from api.v1.webhook.router import API_V1_WEBHOOK_ROUTER
 from api.v1.mock.router import API_V1_MOCK_ROUTER
+from middleware.auth import EntraJWTAuthMiddleware
 from utils.telemetry import setup_telemetry
 
 
@@ -30,3 +31,6 @@ app.add_middleware(
 )
 
 app.add_middleware(UserConfigEnvUpdateMiddleware)
+
+# Entra ID JWT auth (opt-in: no-op when AZURE_AD_TENANT_ID is unset)
+app.add_middleware(EntraJWTAuthMiddleware)
