@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
+import { EntraAuthProvider } from "@/lib/auth/EntraAuthProvider";
 const inter = localFont({
   src: [
     {
@@ -85,11 +86,13 @@ export default function RootLayout({
         className={`${inter.variable} ${unbounded.variable} ${syne.variable} antialiased`}
       >
         <Providers>
-          <MixpanelInitializer>
+          <EntraAuthProvider>
+            <MixpanelInitializer>
 
-            {children}
+              {children}
 
-          </MixpanelInitializer>
+            </MixpanelInitializer>
+          </EntraAuthProvider>
         </Providers>
         <Toaster position="top-center" />
       </body>
