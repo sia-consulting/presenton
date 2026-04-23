@@ -371,6 +371,30 @@ const ImageSelectionConfig = ({ isImageGenerationDisabled, openImageProviderSele
                                         );
                                     }
 
+                                    // Show Azure AI Foundry image model input
+                                    if (provider.value === "azure_ai_foundry") {
+                                        return (
+                                            <div className="w-[295px] space-y-3">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Image Model Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={llmConfig.AZURE_AI_FOUNDRY_IMAGE_MODEL || ''}
+                                                        onChange={(e) => input_field_changed(e.target.value, "azure_ai_foundry_image_model")}
+                                                        className="w-full px-4 py-2.5 h-12 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                                        placeholder="e.g. dall-e-3"
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-blue-600 flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+                                                    Uses Managed Identity from your Azure AI Foundry endpoint
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
                                     // Show API key input for other providers
                                     return (
                                         <div className=" w-[295px]">

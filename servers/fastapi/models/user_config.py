@@ -59,3 +59,9 @@ class UserConfig(BaseModel):
     CODEX_REFRESH_TOKEN: Optional[str] = None
     CODEX_TOKEN_EXPIRES: Optional[str] = None
     CODEX_ACCOUNT_ID: Optional[str] = None
+
+    # Azure AI Foundry
+    AZURE_AI_FOUNDRY_ENDPOINT: Optional[str] = None
+    AZURE_AI_FOUNDRY_MODEL: Optional[str] = None
+    AZURE_MANAGED_IDENTITY_CLIENT_ID: Optional[str] = None
+    AZURE_AI_FOUNDRY_IMAGE_MODEL: Optional[str] = None

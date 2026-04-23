@@ -10,6 +10,8 @@ from utils.available_models import (
 from utils.get_env import (
     get_anthropic_api_key_env,
     get_anthropic_model_env,
+    get_azure_ai_foundry_endpoint_env,
+    get_azure_ai_foundry_image_model_env,
     get_can_change_keys_env,
     get_google_model_env,
     get_openai_api_key_env,
@@ -151,3 +153,11 @@ async def check_llm_and_image_provider_api_or_model_availability():
             workflow_json = get_comfyui_workflow_env()
             if not workflow_json:
                 raise Exception("COMFYUI_WORKFLOW must be provided")
+
+        elif selected_image_provider == ImageProvider.AZURE_AI_FOUNDRY:
+            endpoint = get_azure_ai_foundry_endpoint_env()
+            if not endpoint:
+                raise Exception("AZURE_AI_FOUNDRY_ENDPOINT must be provided for Azure AI Foundry image generation")
+            image_model = get_azure_ai_foundry_image_model_env()
+            if not image_model:
+                raise Exception("AZURE_AI_FOUNDRY_IMAGE_MODEL must be provided")

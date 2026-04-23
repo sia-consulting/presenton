@@ -28,6 +28,7 @@ from utils.image_provider import (
     is_dalle3_selected,
     is_comfyui_selected,
     is_open_webui_selected,
+    is_azure_ai_foundry_image_selected,
 )
 import uuid
 
@@ -58,6 +59,8 @@ class ImageGenerationService:
             return self.generate_image_comfyui
         elif is_open_webui_selected():
             return self.generate_image_open_webui
+        elif is_azure_ai_foundry_image_selected():
+            return self.generate_image_azure_ai_foundry
         return None
 
     def is_stock_provider_selected(self):
@@ -145,6 +148,57 @@ class ImageGenerationService:
             "gpt-image-1.5",
             get_gpt_image_1_5_quality_env() or "medium",
         )
+
+    async def generate_image_azure_ai_foundry(
+        self, prompt: str, output_directory: str
+    ) -> str:
+        """Generate image using Azure AI Foundry with managed identity."""
+        from azure.identity import DefaultAzureCredential
+
+        from utils.get_env import (
+            get_azure_ai_foundry_endpoint_env,
+            get_azure_ai_foundry_image_model_env,
+            get_azure_managed_identity_client_id_env,
+        )
+
+        endpoint = get_azure_ai_foundry_endpoint_env()
+        if not endpoint:
+            raise ValueError("AZURE_AI_FOUNDRY_ENDPOINT is not set")
+
+        image_model = get_azure_ai_foundry_image_model_env()
+        if not image_model:
+            raise ValueError("AZURE_AI_FOUNDRY_IMAGE_MODEL is not set")
+
+        managed_identity_client_id = get_azure_managed_identity_client_id_env()
+        credential_kwargs = {}
+        if managed_identity_client_id:
+            credential_kwargs["managed_identity_client_id"] = managed_identity_client_id
+
+        credential = DefaultAzureCredential(**credential_kwargs)
+        token = credential.get_token("https://cognitiveservices.azure.com/.default")
+
+        # Use the OpenAI SDK pointed at the Azure AI Foundry endpoint
+        base_url = endpoint.rstrip("/")
+        client = AsyncOpenAI(
+            base_url=f"{base_url}/openai/deployments/{image_model}",
+            api_key=token.token,
+            default_headers={"api-key": token.token},
+            default_query={"api-version": "2024-06-01"},
+        )
+
+        result = await client.images.generate(
+            model=image_model,
+            prompt=prompt,
+            n=1,
+            response_format="b64_json",
+            size="1024x1024",
+        )
+        image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
+        with open(image_path, "wb") as f:
+            f.write(base64.b64decode(result.data[0].b64_json))
+
+        credential.close()
+        return image_path
 
     async def generate_image_open_webui(
         self, prompt: str, output_directory: str

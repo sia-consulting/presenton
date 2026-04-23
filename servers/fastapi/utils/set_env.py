@@ -133,3 +133,19 @@ def set_open_webui_image_url_env(value: str):
 
 def set_open_webui_image_api_key_env(value: str):
     os.environ["OPEN_WEBUI_IMAGE_API_KEY"] = value
+
+
+def set_azure_ai_foundry_endpoint_env(value: str):
+    os.environ["AZURE_AI_FOUNDRY_ENDPOINT"] = value
+
+
+def set_azure_ai_foundry_model_env(value: str):
+    os.environ["AZURE_AI_FOUNDRY_MODEL"] = value
+
+
+def set_azure_managed_identity_client_id_env(value: str):
+    os.environ["AZURE_MANAGED_IDENTITY_CLIENT_ID"] = value
+
+
+def set_azure_ai_foundry_image_model_env(value: str):
+    os.environ["AZURE_AI_FOUNDRY_IMAGE_MODEL"] = value
