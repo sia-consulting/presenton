@@ -21,6 +21,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 interface CodexConfigProps {
   codexModel: string;
@@ -81,7 +82,9 @@ export default function CodexConfig({
 
   const checkCurrentAuthStatus = async () => {
     try {
-      const res = await fetch("/api/v1/ppt/codex/auth/status");
+      const res = await fetch("/api/v1/ppt/codex/auth/status", {
+        headers: await getHeader(),
+      });
       if (!res.ok) {
         setAuthStatus("unauthenticated");
         return;
@@ -102,6 +105,7 @@ export default function CodexConfig({
     try {
       const res = await fetch("/api/v1/ppt/codex/auth/initiate", {
         method: "POST",
+        headers: await getHeader(),
       });
       if (!res.ok) throw new Error("Failed to initiate auth");
       const data = await res.json();
@@ -115,7 +119,8 @@ export default function CodexConfig({
       pollIntervalRef.current = setInterval(async () => {
         try {
           const pollRes = await fetch(
-            `/api/v1/ppt/codex/auth/status/${session_id}`
+            `/api/v1/ppt/codex/auth/status/${session_id}`,
+            { headers: await getHeader() }
           );
           if (!pollRes.ok) return;
           const pollData: StatusResponse = await pollRes.json();
@@ -151,7 +156,7 @@ export default function CodexConfig({
     try {
       const res = await fetch("/api/v1/ppt/codex/auth/exchange", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getHeader(),
         body: JSON.stringify({ session_id: sessionId, code: manualCode.trim() }),
       });
       if (!res.ok) {
@@ -185,7 +190,10 @@ export default function CodexConfig({
   const handleSignOut = async () => {
     setIsLoggingOut(true);
     try {
-      await fetch("/api/v1/ppt/codex/auth/logout", { method: "POST" });
+      await fetch("/api/v1/ppt/codex/auth/logout", {
+        method: "POST",
+        headers: await getHeader(),
+      });
       setAuthStatus("unauthenticated");
       setAccountId(null);
       onInputChange("", "codex_model");
@@ -202,6 +210,7 @@ export default function CodexConfig({
     try {
       const res = await fetch("/api/v1/ppt/codex/auth/refresh", {
         method: "POST",
+        headers: await getHeader(),
       });
       if (!res.ok) throw new Error("Refresh failed");
       const data = await res.json();
