@@ -226,7 +226,11 @@ const SettingsPage = () => {
             ? llmConfig.OLLAMA_MODEL
             : textProviderKey === "custom"
               ? llmConfig.CUSTOM_MODEL
-              : "";
+              : textProviderKey === "azure_ai_foundry"
+                ? llmConfig.AZURE_AI_FOUNDRY_MODEL
+                : textProviderKey === "codex"
+                  ? llmConfig.CODEX_MODEL
+                  : "";
   const textSummary = selectedTextModel
     ? `${textProviderLabel} (${selectedTextModel})`
     : textProviderLabel;
