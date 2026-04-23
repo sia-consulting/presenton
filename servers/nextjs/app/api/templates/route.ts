@@ -3,6 +3,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { TemplateSetting } from '@/app/(presentation-generator)/template-preview/types'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         // Get the path to the presentation-templates directory
