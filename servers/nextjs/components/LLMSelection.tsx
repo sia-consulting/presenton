@@ -6,6 +6,7 @@ import AnthropicConfig from "./AnthropicConfig";
 import OllamaConfig from "./OllamaConfig";
 import CustomConfig from "./CustomConfig";
 import CodexConfig from "./CodexConfig";
+import AzureAIFoundryConfig from "./AzureAIFoundryConfig";
 import {
   updateLLMConfig,
   changeProvider as changeProviderUtil,
@@ -56,12 +57,24 @@ export default function LLMProviderSelection({
       (llmConfig.LLM === "ollama" && !llmConfig.OLLAMA_MODEL) ||
       (llmConfig.LLM === "custom" && !llmConfig.CUSTOM_MODEL) ||
       (llmConfig.LLM === "anthropic" && !llmConfig.ANTHROPIC_MODEL) ||
-      (llmConfig.LLM === "codex" && !llmConfig.CODEX_MODEL);
+      (llmConfig.LLM === "codex" && !llmConfig.CODEX_MODEL) ||
+      (llmConfig.LLM === "azure_ai_foundry" && !llmConfig.AZURE_AI_FOUNDRY_MODEL);
 
     const needsProviderApiKey =
       (llmConfig.LLM === "openai" && !llmConfig.OPENAI_API_KEY) ||
       (llmConfig.LLM === "google" && !llmConfig.GOOGLE_API_KEY) ||
       (llmConfig.LLM === "anthropic" && !llmConfig.ANTHROPIC_API_KEY);
+
+    const needsAzureConfig =
+      (llmConfig.LLM === "azure_ai_foundry" && !llmConfig.AZURE_AI_FOUNDRY_ENDPOINT) ||
+      (!llmConfig.DISABLE_IMAGE_GENERATION &&
+        llmConfig.IMAGE_PROVIDER === "azure_ai_foundry" &&
+        !llmConfig.AZURE_AI_FOUNDRY_ENDPOINT);
+
+    const needsAzureImageModel =
+      !llmConfig.DISABLE_IMAGE_GENERATION &&
+      llmConfig.IMAGE_PROVIDER === "azure_ai_foundry" &&
+      !llmConfig.AZURE_AI_FOUNDRY_IMAGE_MODEL;
 
     const needsImageProviderApiKey =
       !llmConfig.DISABLE_IMAGE_GENERATION &&
@@ -90,7 +103,9 @@ export default function LLMProviderSelection({
         needsModelSelection ||
         needsApiKey ||
         needsOllamaUrl ||
-        needsComfyUIConfig,
+        needsComfyUIConfig ||
+        needsAzureConfig ||
+        needsAzureImageModel,
       text: needsModelSelection
         ? "Please Select a Model"
         : needsApiKey
@@ -99,7 +114,11 @@ export default function LLMProviderSelection({
             ? "Please Enter Ollama URL"
             : needsComfyUIConfig
               ? "Please Configure ComfyUI"
-              : "Save Configuration",
+              : needsAzureConfig
+                ? "Please Enter Azure AI Foundry Endpoint"
+                : needsAzureImageModel
+                  ? "Please Enter Image Model Name"
+                  : "Save Configuration",
       showProgress: false,
     });
   }, [llmConfig]);
@@ -172,6 +191,8 @@ export default function LLMProviderSelection({
           updates.IMAGE_PROVIDER = "gpt-image-1.5";
         } else if (prevConfig.LLM === "google") {
           updates.IMAGE_PROVIDER = "gemini_flash";
+        } else if (prevConfig.LLM === "azure_ai_foundry") {
+          updates.IMAGE_PROVIDER = "azure_ai_foundry";
         } else {
           updates.IMAGE_PROVIDER = "pexels";
         }
@@ -226,13 +247,14 @@ export default function LLMProviderSelection({
           onValueChange={handleProviderChange}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-6 bg-transparent h-10">
+          <TabsList className="grid w-full grid-cols-7 bg-transparent h-10">
             <TabsTrigger value="openai">OpenAI</TabsTrigger>
             <TabsTrigger value="google">Google</TabsTrigger>
             <TabsTrigger value="anthropic">Anthropic</TabsTrigger>
             <TabsTrigger value="ollama">Ollama</TabsTrigger>
             <TabsTrigger value="custom">Custom</TabsTrigger>
             <TabsTrigger value="codex">ChatGPT</TabsTrigger>
+            <TabsTrigger value="azure_ai_foundry">Azure AI</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -302,6 +324,16 @@ export default function LLMProviderSelection({
           <TabsContent value="codex" className="mt-6">
             <CodexConfig
               codexModel={llmConfig.CODEX_MODEL || ""}
+              onInputChange={input_field_changed}
+            />
+          </TabsContent>
+
+          {/* Azure AI Foundry Content */}
+          <TabsContent value="azure_ai_foundry" className="mt-6">
+            <AzureAIFoundryConfig
+              azureEndpoint={llmConfig.AZURE_AI_FOUNDRY_ENDPOINT || ""}
+              azureModel={llmConfig.AZURE_AI_FOUNDRY_MODEL || ""}
+              azureManagedIdentityClientId={llmConfig.AZURE_MANAGED_IDENTITY_CLIENT_ID || ""}
               onInputChange={input_field_changed}
             />
           </TabsContent>

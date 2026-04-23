@@ -99,6 +99,13 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderOption> = {
     apiKeyField: "OPEN_WEBUI_IMAGE_URL",
     apiKeyFieldLabel: "Open WebUI URL",
   },
+  azure_ai_foundry: {
+    value: "azure_ai_foundry",
+    label: "Azure AI Foundry",
+    description: "Azure AI Foundry image generation with managed identity",
+    icon: "/icons/azure.png",
+    requiresApiKey: false,
+  },
 };
 
 export const LLM_PROVIDERS: Record<string, LLMProviderOption> = {
@@ -140,6 +147,12 @@ export const LLM_PROVIDERS: Record<string, LLMProviderOption> = {
     label: "ChatGPT",
     description: "ChatGPT Plus/Pro via OAuth",
     icon: "/icons/chatgpt.png",
+  },
+  azure_ai_foundry: {
+    value: "azure_ai_foundry",
+    label: "Azure AI Foundry",
+    description: "Azure AI with managed identity",
+    icon: "/icons/azure.png",
   },
 };
 
