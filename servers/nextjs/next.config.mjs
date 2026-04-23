@@ -5,6 +5,17 @@ const nextConfig = {
 
   experimental: {
     instrumentationHook: true,
+    serverComponentsExternalPackages: [
+      "@opentelemetry/sdk-node",
+      "@opentelemetry/sdk-trace-base",
+      "@opentelemetry/sdk-trace-node",
+      "@opentelemetry/instrumentation-http",
+      "@opentelemetry/resources",
+      "@azure/monitor-opentelemetry-exporter",
+      "@grpc/grpc-js",
+      "@opentelemetry/otlp-grpc-exporter-base",
+      "@opentelemetry/exporter-logs-otlp-grpc",
+    ],
   },
 
   // Rewrites for development - proxy font requests to FastAPI backend
