@@ -46,6 +46,10 @@ RUN npm install
 # Copy Next.js app
 COPY servers/nextjs/ /app/servers/nextjs/
 
+# Before the Next.js build
+ARG NEXT_PUBLIC_AZURE_AD_CLIENT_ID=""
+ARG NEXT_PUBLIC_AZURE_AD_TENANT_ID=""
+
 # Build the Next.js app
 WORKDIR /app/servers/nextjs
 RUN npm run build
