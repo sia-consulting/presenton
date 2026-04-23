@@ -37,7 +37,7 @@ const nextConfig = {
       // Externalize server-only packages that use Node.js built-ins.
       // serverComponentsExternalPackages alone is not enough for the instrumentation hook.
       config.externals = [
-        ...(Array.isArray(config.externals) ? config.externals : []),
+        ...(Array.isArray(config.externals) ? config.externals : config.externals ? [config.externals] : []),
         /^@opentelemetry\//,
         /^@grpc\//,
         /^@azure\/monitor-opentelemetry-exporter/,
