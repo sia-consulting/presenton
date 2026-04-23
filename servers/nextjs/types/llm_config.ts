@@ -22,6 +22,12 @@ export interface LLMConfig {
   CUSTOM_LLM_API_KEY?: string;
   CUSTOM_MODEL?: string;
 
+  // Azure AI Foundry
+  AZURE_AI_FOUNDRY_ENDPOINT?: string;
+  AZURE_AI_FOUNDRY_MODEL?: string;
+  AZURE_MANAGED_IDENTITY_CLIENT_ID?: string;
+  AZURE_AI_FOUNDRY_IMAGE_MODEL?: string;
+
   // Image providers
   DISABLE_IMAGE_GENERATION?: boolean;
   IMAGE_PROVIDER?: string;

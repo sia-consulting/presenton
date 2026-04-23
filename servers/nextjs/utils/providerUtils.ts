@@ -39,6 +39,10 @@ export const updateLLMConfig = (
     custom_llm_url: "CUSTOM_LLM_URL",
     custom_llm_api_key: "CUSTOM_LLM_API_KEY",
     custom_model: "CUSTOM_MODEL",
+    azure_ai_foundry_endpoint: "AZURE_AI_FOUNDRY_ENDPOINT",
+    azure_ai_foundry_model: "AZURE_AI_FOUNDRY_MODEL",
+    azure_managed_identity_client_id: "AZURE_MANAGED_IDENTITY_CLIENT_ID",
+    azure_ai_foundry_image_model: "AZURE_AI_FOUNDRY_IMAGE_MODEL",
     pexels_api_key: "PEXELS_API_KEY",
     pixabay_api_key: "PIXABAY_API_KEY",
     image_provider: "IMAGE_PROVIDER",
@@ -79,6 +83,8 @@ export const changeProvider = (
     newConfig.IMAGE_PROVIDER = "gpt-image-1.5";
   } else if (provider === "google") {
     newConfig.IMAGE_PROVIDER = "gemini_flash";
+  } else if (provider === "azure_ai_foundry") {
+    newConfig.IMAGE_PROVIDER = "azure_ai_foundry";
   } else {
     newConfig.IMAGE_PROVIDER = "pexels"; // default for ollama, custom, codex
   }

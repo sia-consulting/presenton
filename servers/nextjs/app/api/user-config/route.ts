@@ -100,6 +100,14 @@ export async function POST(request: Request) {
     CODEX_REFRESH_TOKEN: existingConfig.CODEX_REFRESH_TOKEN,
     CODEX_TOKEN_EXPIRES: existingConfig.CODEX_TOKEN_EXPIRES,
     CODEX_ACCOUNT_ID: existingConfig.CODEX_ACCOUNT_ID,
+    AZURE_AI_FOUNDRY_ENDPOINT:
+      userConfig.AZURE_AI_FOUNDRY_ENDPOINT || existingConfig.AZURE_AI_FOUNDRY_ENDPOINT,
+    AZURE_AI_FOUNDRY_MODEL:
+      userConfig.AZURE_AI_FOUNDRY_MODEL || existingConfig.AZURE_AI_FOUNDRY_MODEL,
+    AZURE_MANAGED_IDENTITY_CLIENT_ID:
+      userConfig.AZURE_MANAGED_IDENTITY_CLIENT_ID || existingConfig.AZURE_MANAGED_IDENTITY_CLIENT_ID,
+    AZURE_AI_FOUNDRY_IMAGE_MODEL:
+      userConfig.AZURE_AI_FOUNDRY_IMAGE_MODEL || existingConfig.AZURE_AI_FOUNDRY_IMAGE_MODEL,
   };
   fs.writeFileSync(userConfigPath, JSON.stringify(mergedConfig));
   return NextResponse.json(mergedConfig);

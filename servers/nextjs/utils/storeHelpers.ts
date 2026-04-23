@@ -61,6 +61,13 @@ export const getLLMConfigValidationError = (
     if (!isProvided(llmConfig.CODEX_MODEL)) {
       return "Select a Codex model.";
     }
+  } else if (llm === "azure_ai_foundry") {
+    if (!isProvided(llmConfig.AZURE_AI_FOUNDRY_ENDPOINT)) {
+      return "Azure AI Foundry endpoint is required.";
+    }
+    if (!isProvided(llmConfig.AZURE_AI_FOUNDRY_MODEL)) {
+      return "Azure AI Foundry model is required.";
+    }
   } else {
     return "Unsupported or unknown text provider.";
   }
@@ -105,6 +112,14 @@ export const getLLMConfigValidationError = (
       case "open_webui":
         if (!isProvided(llmConfig.OPEN_WEBUI_IMAGE_URL)) {
           return "Open WebUI URL is required.";
+        }
+        break;
+      case "azure_ai_foundry":
+        if (!isProvided(llmConfig.AZURE_AI_FOUNDRY_ENDPOINT)) {
+          return "Azure AI Foundry endpoint is required for image generation.";
+        }
+        if (!isProvided(llmConfig.AZURE_AI_FOUNDRY_IMAGE_MODEL)) {
+          return "Azure AI Foundry image model is required.";
         }
         break;
       default:
