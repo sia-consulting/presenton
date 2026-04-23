@@ -155,6 +155,11 @@ def get_azure_managed_identity_client_id_env() -> str:
     return os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "")
 
 
+def get_azure_ai_foundry_image_model_env() -> str:
+    """Azure AI Foundry image generation model name (e.g. dall-e-3)"""
+    return os.getenv("AZURE_AI_FOUNDRY_IMAGE_MODEL", "")
+
+
 def get_migrate_database_on_startup_env():
     return os.getenv("MIGRATE_DATABASE_ON_STARTUP")
 

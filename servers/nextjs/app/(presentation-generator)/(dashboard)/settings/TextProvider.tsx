@@ -46,6 +46,8 @@ const TextProvider = ({
                 return 'OLLAMA_MODEL';
             case 'custom':
                 return 'CUSTOM_MODEL';
+            case 'azure_ai_foundry':
+                return 'AZURE_AI_FOUNDRY_MODEL';
             default:
                 return '';
         }
@@ -384,7 +386,24 @@ const TextProvider = ({
                                     <>
                                         <button className='px-3.5 py-2.5 bg-[#EDEEEF]  mt-auto rounded-[58px] w-full  text-xs font-medium text-[#101323]'>Sign in with ChatGPT</button>
                                     </>
-                                    : (
+                                    : selectedProvider === 'azure_ai_foundry' ? (
+                                        <>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Endpoint
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={llmConfig.AZURE_AI_FOUNDRY_ENDPOINT || ''}
+                                                onChange={(e) => onInputChange(e.target.value, 'AZURE_AI_FOUNDRY_ENDPOINT')}
+                                                className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                                placeholder="https://your-project.services.ai.azure.com/"
+                                            />
+                                            <p className="mt-1 text-xs text-blue-600 flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+                                                Using Managed Identity
+                                            </p>
+                                        </>
+                                    ) : (
                                         <>
                                             <label className="block text-sm font-medium capitalize text-gray-700 mb-2">
                                                 {selectedProvider === 'custom' ? 'Custom LLM API Key' : `${llmConfig.LLM} API Key`}
@@ -421,7 +440,7 @@ const TextProvider = ({
                             </div>
 
 
-                            {selectedProvider !== 'ollama' && selectedProvider !== 'codex' && (!modelsChecked || (modelsChecked && availableModels.length === 0)) && (
+                            {selectedProvider !== 'ollama' && selectedProvider !== 'codex' && selectedProvider !== 'azure_ai_foundry' && (!modelsChecked || (modelsChecked && availableModels.length === 0)) && (
 
                                 <button
                                     onClick={fetchAvailableModels}
@@ -451,8 +470,24 @@ const TextProvider = ({
                         </div>
 
 
+                        {/* Azure AI Foundry - manual model input */}
+                        {selectedProvider === 'azure_ai_foundry' ? (
+                            <div className="w-[205px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Model Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={llmConfig.AZURE_AI_FOUNDRY_MODEL || ''}
+                                    onChange={(e) => onInputChange(e.target.value, 'AZURE_AI_FOUNDRY_MODEL')}
+                                    className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                    placeholder="e.g. gpt-4o"
+                                />
+                            </div>
+                        ) : null}
+
                         {/* Model Selection - only show if models are available */}
-                        {modelsChecked && availableModels.length > 0 ? (
+                        {selectedProvider !== 'azure_ai_foundry' && modelsChecked && availableModels.length > 0 ? (
                             <div className="w-[205px]">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-3">

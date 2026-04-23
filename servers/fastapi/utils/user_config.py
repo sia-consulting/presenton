@@ -5,6 +5,10 @@ from models.user_config import UserConfig
 from utils.get_env import (
     get_anthropic_api_key_env,
     get_anthropic_model_env,
+    get_azure_ai_foundry_endpoint_env,
+    get_azure_ai_foundry_image_model_env,
+    get_azure_ai_foundry_model_env,
+    get_azure_managed_identity_client_id_env,
     get_comfyui_url_env,
     get_comfyui_workflow_env,
     get_custom_llm_api_key_env,
@@ -40,6 +44,10 @@ from utils.parsers import parse_bool_or_none
 from utils.set_env import (
     set_anthropic_api_key_env,
     set_anthropic_model_env,
+    set_azure_ai_foundry_endpoint_env,
+    set_azure_ai_foundry_image_model_env,
+    set_azure_ai_foundry_model_env,
+    set_azure_managed_identity_client_id_env,
     set_comfyui_url_env,
     set_comfyui_workflow_env,
     set_custom_llm_api_key_env,
@@ -139,6 +147,10 @@ def get_user_config():
         CODEX_ACCOUNT_ID=existing_config.CODEX_ACCOUNT_ID or get_codex_account_id_env(),
         OPEN_WEBUI_IMAGE_URL=existing_config.OPEN_WEBUI_IMAGE_URL or get_open_webui_image_url_env(),
         OPEN_WEBUI_IMAGE_API_KEY=existing_config.OPEN_WEBUI_IMAGE_API_KEY or get_open_webui_image_api_key_env(),
+        AZURE_AI_FOUNDRY_ENDPOINT=existing_config.AZURE_AI_FOUNDRY_ENDPOINT or get_azure_ai_foundry_endpoint_env(),
+        AZURE_AI_FOUNDRY_MODEL=existing_config.AZURE_AI_FOUNDRY_MODEL or get_azure_ai_foundry_model_env(),
+        AZURE_MANAGED_IDENTITY_CLIENT_ID=existing_config.AZURE_MANAGED_IDENTITY_CLIENT_ID or get_azure_managed_identity_client_id_env(),
+        AZURE_AI_FOUNDRY_IMAGE_MODEL=existing_config.AZURE_AI_FOUNDRY_IMAGE_MODEL or get_azure_ai_foundry_image_model_env(),
     )
 
 
@@ -206,6 +218,14 @@ def update_env_with_user_config():
         set_open_webui_image_url_env(user_config.OPEN_WEBUI_IMAGE_URL)
     if user_config.OPEN_WEBUI_IMAGE_API_KEY:
         set_open_webui_image_api_key_env(user_config.OPEN_WEBUI_IMAGE_API_KEY)
+    if user_config.AZURE_AI_FOUNDRY_ENDPOINT:
+        set_azure_ai_foundry_endpoint_env(user_config.AZURE_AI_FOUNDRY_ENDPOINT)
+    if user_config.AZURE_AI_FOUNDRY_MODEL:
+        set_azure_ai_foundry_model_env(user_config.AZURE_AI_FOUNDRY_MODEL)
+    if user_config.AZURE_MANAGED_IDENTITY_CLIENT_ID:
+        set_azure_managed_identity_client_id_env(user_config.AZURE_MANAGED_IDENTITY_CLIENT_ID)
+    if user_config.AZURE_AI_FOUNDRY_IMAGE_MODEL:
+        set_azure_ai_foundry_image_model_env(user_config.AZURE_AI_FOUNDRY_IMAGE_MODEL)
 
 
 def save_codex_tokens_to_user_config() -> None:
