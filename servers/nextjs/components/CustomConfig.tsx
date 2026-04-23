@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Switch } from "./ui/switch";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 interface CustomConfigProps {
   customLlmUrl: string;
@@ -62,9 +63,7 @@ export default function CustomConfig({
       setCustomModelsLoading(true);
       const response = await fetch("/api/v1/ppt/openai/models/available", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: await getHeader(),
         body: JSON.stringify({
           url: customLlmUrl,
           api_key: customLlmApiKey,

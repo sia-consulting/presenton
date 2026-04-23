@@ -16,6 +16,7 @@ import { MixpanelEvent, trackEvent } from '@/utils/mixpanel';
 import { usePathname, useRouter } from 'next/navigation';
 import { handleSaveLLMConfig } from '@/utils/storeHelpers';
 import { checkIfSelectedOllamaModelIsPulled, pullOllamaModel } from '@/utils/providerUtils';
+import { getHeader } from '@/app/(presentation-generator)/services/api/header';
 
 const PresentonMode = ({ currentStep, setStep }: { currentStep: number, setStep: (step: number) => void }) => {
     const pathname = usePathname();
@@ -116,9 +117,7 @@ const PresentonMode = ({ currentStep, setStep }: { currentStep: number, setStep:
             if (llmConfig.LLM === 'google') {
                 response = await fetch('/api/v1/ppt/google/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         api_key: currentApiKey
                     }),
@@ -126,21 +125,19 @@ const PresentonMode = ({ currentStep, setStep }: { currentStep: number, setStep:
             } else if (llmConfig.LLM === 'anthropic') {
                 response = await fetch('/api/v1/ppt/anthropic/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         api_key: currentApiKey
                     }),
                 });
             } else if (llmConfig.LLM === 'ollama') {
-                response = await fetch('/api/v1/ppt/ollama/models/supported');
+                response = await fetch('/api/v1/ppt/ollama/models/supported', {
+                    headers: await getHeader(),
+                });
             } else {
                 response = await fetch('/api/v1/ppt/openai/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         url: llmConfig.LLM === 'custom' ? llmConfig.CUSTOM_LLM_URL : LLM_PROVIDERS[llmConfig.LLM!]?.url || '',
                         api_key: currentApiKey

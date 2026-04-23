@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Switch } from "./ui/switch";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 interface GoogleConfigProps {
   googleApiKey: string;
@@ -52,9 +53,7 @@ export default function GoogleConfig({
     try {
       const response = await fetch('/api/v1/ppt/google/models/available', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getHeader(),
         body: JSON.stringify({
           api_key: googleApiKey
         }),

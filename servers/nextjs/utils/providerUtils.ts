@@ -1,4 +1,5 @@
 import { LLMConfig } from "@/types/llm_config";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 export interface OllamaModel {
   label: string;
@@ -95,7 +96,9 @@ export const changeProvider = (
 
 export const checkIfSelectedOllamaModelIsPulled = async (ollamaModel: string) => {
   try {
-    const response = await fetch('/api/v1/ppt/ollama/models/available');
+    const response = await fetch('/api/v1/ppt/ollama/models/available', {
+      headers: await getHeader(),
+    });
     const models = await response.json();
     const pulledModels = models.map((model: any) => model.name);
     return pulledModels.includes(ollamaModel);
@@ -169,7 +172,8 @@ export const pullOllamaModel = async (
       }
       try {
         const response = await fetch(
-          `/api/v1/ppt/ollama/model/pull?model=${model}`
+          `/api/v1/ppt/ollama/model/pull?model=${model}`,
+          { headers: await getHeader() }
         );
         if (settled) return;
         if (response.status === 200) {

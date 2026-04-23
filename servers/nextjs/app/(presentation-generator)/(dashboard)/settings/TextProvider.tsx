@@ -10,6 +10,7 @@ import { Check, Loader2, Eye, EyeOff, ChevronUp, User, RefreshCw, LogOut } from 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { notify } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import { getHeader } from '@/app/(presentation-generator)/services/api/header';
 
 
 interface OpenAIConfigProps {
@@ -123,9 +124,7 @@ const TextProvider = ({
             if (selectedProvider === 'google') {
                 response = await fetch('/api/v1/ppt/google/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         api_key: currentApiKey
                     }),
@@ -133,21 +132,19 @@ const TextProvider = ({
             } else if (selectedProvider === 'anthropic') {
                 response = await fetch('/api/v1/ppt/anthropic/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         api_key: currentApiKey
                     }),
                 });
             } else if (selectedProvider === 'ollama') {
-                response = await fetch('/api/v1/ppt/ollama/models/supported');
+                response = await fetch('/api/v1/ppt/ollama/models/supported', {
+                    headers: await getHeader(),
+                });
             } else {
                 response = await fetch('/api/v1/ppt/openai/models/available', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: await getHeader(),
                     body: JSON.stringify({
                         url: selectedProvider === 'custom' ? currentCustomUrl : selectedProviderMeta?.url || '',
                         api_key: currentApiKey
