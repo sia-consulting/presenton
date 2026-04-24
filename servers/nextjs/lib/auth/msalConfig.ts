@@ -35,9 +35,37 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
 }
 
 /**
- * Scopes requested when acquiring tokens.
- * `User.Read` is needed to read the signed-in user's profile via MS Graph.
+ * Build the login/token request with the correct scope for the backend API.
+ *
+ * The scope `api://{clientId}/.default` requests an access token whose
+ * `aud` matches the application's own client ID — exactly what the FastAPI
+ * backend expects.  We do **not** request `User.Read` because we never call
+ * Microsoft Graph.
+ *
+ * Must be called **after** the MSAL provider has initialised (i.e. after
+ * the auth config has been fetched from `/api/auth-config`).
  */
-export const loginRequest = {
-  scopes: ["User.Read"],
-};
+export function getLoginRequest(): { scopes: string[] } {
+  const clientId = getStoredClientId();
+  return { scopes: [`api://${clientId}/.default`] };
+}
+
+// ---------------------------------------------------------------------------
+// Runtime clientId storage (set by MsalProvider after fetching auth config)
+// ---------------------------------------------------------------------------
+
+let _storedClientId: string | null = null;
+
+export function setStoredClientId(id: string): void {
+  _storedClientId = id;
+}
+
+export function getStoredClientId(): string {
+  if (!_storedClientId) {
+    throw new Error(
+      "Client ID has not been set yet. " +
+        "Ensure the auth config has been fetched and setStoredClientId() has been called.",
+    );
+  }
+  return _storedClientId;
+}

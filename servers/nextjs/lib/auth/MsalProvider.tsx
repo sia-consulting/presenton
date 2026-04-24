@@ -8,7 +8,7 @@ import {
   AuthenticationResult,
 } from "@azure/msal-browser";
 import { MsalProvider as MsalReactProvider } from "@azure/msal-react";
-import { createMsalConfig, AuthConfig } from "./msalConfig";
+import { createMsalConfig, AuthConfig, setStoredClientId } from "./msalConfig";
 
 /**
  * Module-level MSAL instance.  Created lazily after the auth config is
@@ -49,7 +49,10 @@ export function MsalProvider({ children }: { children: React.ReactNode }) {
       }
       const cfg: AuthConfig = await res.json();
 
-      // 2. Create the MSAL instance with the dynamic config
+      // 2. Store clientId so getLoginRequest() can build scopes at runtime
+      setStoredClientId(cfg.clientId);
+
+      // 3. Create the MSAL instance with the dynamic config
       const config = createMsalConfig(cfg);
       msalInstance = new PublicClientApplication(config);
 

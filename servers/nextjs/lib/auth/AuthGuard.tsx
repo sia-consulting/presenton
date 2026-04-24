@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
-import { loginRequest } from "./msalConfig";
+import { getLoginRequest } from "./msalConfig";
 
 /**
  * Gate component that redirects unauthenticated users to the Entra login page.
@@ -16,7 +16,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Only trigger a redirect if no other interaction is in progress
     if (!isAuthenticated && inProgress === InteractionStatus.None) {
-      instance.loginRedirect(loginRequest);
+      instance.loginRedirect(getLoginRequest());
     }
   }, [isAuthenticated, inProgress, instance]);
 
