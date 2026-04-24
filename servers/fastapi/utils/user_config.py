@@ -93,7 +93,9 @@ def get_user_config():
         pass
 
     return UserConfig(
-        LLM=existing_config.LLM or get_llm_provider_env(),
+        LLM=existing_config.LLM or get_llm_provider_env() or (
+            "azure_ai_foundry" if get_azure_ai_foundry_endpoint_env() else None
+        ),
         OPENAI_API_KEY=existing_config.OPENAI_API_KEY or get_openai_api_key_env(),
         OPENAI_MODEL=existing_config.OPENAI_MODEL or get_openai_model_env(),
         GOOGLE_API_KEY=existing_config.GOOGLE_API_KEY or get_google_api_key_env(),
@@ -107,7 +109,9 @@ def get_user_config():
         CUSTOM_LLM_API_KEY=existing_config.CUSTOM_LLM_API_KEY
         or get_custom_llm_api_key_env(),
         CUSTOM_MODEL=existing_config.CUSTOM_MODEL or get_custom_model_env(),
-        IMAGE_PROVIDER=existing_config.IMAGE_PROVIDER or get_image_provider_env(),
+        IMAGE_PROVIDER=existing_config.IMAGE_PROVIDER or get_image_provider_env() or (
+            "azure_ai_foundry" if get_azure_ai_foundry_image_model_env() else None
+        ),
         DISABLE_IMAGE_GENERATION=(
             existing_config.DISABLE_IMAGE_GENERATION
             if existing_config.DISABLE_IMAGE_GENERATION is not None
