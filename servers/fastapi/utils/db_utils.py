@@ -1,6 +1,6 @@
 import os
 from utils.get_env import get_app_data_directory_env, get_database_url_env
-from urllib.parse import urlsplit, urlunsplit, parse_qsl
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import ssl
 
 
@@ -38,10 +38,51 @@ def get_pool_kwargs() -> dict:
     }
 
 
+def _strip_password_from_url(url: str) -> str:
+    """Remove the password component from a database URL."""
+    split = urlsplit(url)
+    if split.password:
+        # Reconstruct netloc without password
+        userinfo = split.username or ""
+        netloc = f"{userinfo}@{split.hostname}"
+        if split.port:
+            netloc += f":{split.port}"
+        return urlunsplit((split.scheme, netloc, split.path, split.query, split.fragment))
+    return url
+
+
+def _ensure_ssl_in_url(url: str) -> str:
+    """Ensure ``sslmode=require`` is present in the URL query string.
+
+    Azure Postgres Flexible Server requires SSL.  When using Managed Identity
+    the URL often omits sslmode because there is no password to protect, but
+    SSL is still mandatory.
+    """
+    split = urlsplit(url)
+    params = parse_qsl(split.query, keep_blank_values=True)
+    has_sslmode = any(k.lower() == "sslmode" for k, _ in params)
+    if not has_sslmode:
+        params.append(("sslmode", "require"))
+        new_query = urlencode(params)
+        return urlunsplit((split.scheme, split.netloc, split.path, new_query, split.fragment))
+    return url
+
+
 def get_database_url_and_connect_args() -> tuple[str, dict]:
+    from utils.azure_db_auth import is_managed_identity_enabled
+
     database_url = get_database_url_env() or "sqlite:///" + os.path.join(
         get_app_data_directory_env() or "/tmp/presenton", "fastapi.db"
     )
+
+    mi_enabled = is_managed_identity_enabled() and database_url.startswith("postgresql://")
+
+    if mi_enabled:
+        # Strip any password from the URL – the token will be injected at
+        # connection time via the do_connect event.
+        database_url = _strip_password_from_url(database_url)
+        # Azure Postgres requires SSL
+        database_url = _ensure_ssl_in_url(database_url)
 
     if database_url.startswith("sqlite://"):
         database_url = database_url.replace("sqlite://", "sqlite+aiosqlite://", 1)

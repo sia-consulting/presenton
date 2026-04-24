@@ -48,6 +48,23 @@ def _run_migrations() -> None:
     # Alembic uses synchronous engines; strip async driver prefixes.
     database_url = _to_sync_database_url(database_url)
 
+    # For Managed Identity auth, inject the current token as the password
+    # directly into the URL so the synchronous Alembic engine can connect.
+    from utils.azure_db_auth import is_managed_identity_enabled
+    if is_managed_identity_enabled() and database_url.startswith("postgresql://"):
+        from urllib.parse import urlsplit, urlunsplit, quote
+        from utils.azure_db_auth import get_postgres_access_token
+        token = get_postgres_access_token()
+        split = urlsplit(database_url)
+        # Reconstruct netloc with token as password
+        userinfo = split.username or ""
+        netloc = f"{userinfo}:{quote(token, safe='')}@{split.hostname}"
+        if split.port:
+            netloc += f":{split.port}"
+        database_url = urlunsplit(
+            (split.scheme, netloc, split.path, split.query, split.fragment)
+        )
+
     config.set_main_option("sqlalchemy.url", database_url)
     _stamp_legacy_database_if_needed(config, database_url)
 
