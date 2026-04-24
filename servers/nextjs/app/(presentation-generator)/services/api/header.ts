@@ -1,30 +1,30 @@
-import { loginRequest } from "@/lib/auth/msalConfig";
+import { getLoginRequest } from "@/lib/auth/msalConfig";
 import { getMsalInstance } from "@/lib/auth/MsalProvider";
 
 /**
- * Acquire a Bearer token from the MSAL cache.
+ * Acquire a Bearer **access token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * We use the **ID token** (not the access token) because the login scopes
- * target Microsoft Graph (`User.Read`), so the *access* token's audience is
- * `https://graph.microsoft.com` — which the backend rightfully rejects.
- * The ID token's audience is always the application's own `clientId`, which
- * the backend accepts.
+ * The requested scope is `api://{clientId}/.default` so the access token's
+ * `aud` matches the application's own client ID — exactly what the FastAPI
+ * backend validates.
  */
 async function getAccessToken(): Promise<string | null> {
   const instance = getMsalInstance();
   const account = instance.getActiveAccount();
   if (!account) return null;
 
+  const request = getLoginRequest();
+
   try {
     const response = await instance.acquireTokenSilent({
-      ...loginRequest,
+      ...request,
       account,
     });
-    return response.idToken;
+    return response.accessToken;
   } catch {
     // Token expired / interaction required — trigger a redirect
-    await instance.acquireTokenRedirect(loginRequest);
+    await instance.acquireTokenRedirect(request);
     return null;
   }
 }
