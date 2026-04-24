@@ -35,11 +35,18 @@ export function getMsalInstance(): PublicClientApplication {
  */
 export function MsalProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
       // 1. Fetch auth config from the server (runtime, not build-time)
       const res = await fetch("/api/auth-config");
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(
+          `Failed to load auth config (HTTP ${res.status}): ${body}`,
+        );
+      }
       const cfg: AuthConfig = await res.json();
 
       // 2. Create the MSAL instance with the dynamic config
@@ -76,8 +83,28 @@ export function MsalProvider({ children }: { children: React.ReactNode }) {
       setIsInitialized(true);
     };
 
-    init();
+    init().catch((err) => {
+      console.error("MSAL initialisation failed:", err);
+      setError(err instanceof Error ? err.message : String(err));
+    });
   }, []);
+
+  if (error) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          fontFamily: "sans-serif",
+          color: "#c00",
+        }}
+      >
+        <p>Authentication configuration error: {error}</p>
+      </div>
+    );
+  }
 
   if (!isInitialized || !msalInstance) {
     return null; // AuthGuard will show its own loading state

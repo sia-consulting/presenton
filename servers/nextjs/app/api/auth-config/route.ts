@@ -11,12 +11,22 @@ import { NextResponse } from "next/server";
  * deployment — so browsers and CDNs can cache it aggressively.
  */
 export async function GET() {
+  const clientId = process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID ?? "";
+  const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "";
+  const redirectUri = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "/";
+
+  if (!clientId || !tenantId) {
+    return NextResponse.json(
+      {
+        error:
+          "Missing required environment variables: NEXT_PUBLIC_AZURE_AD_CLIENT_ID and/or NEXT_PUBLIC_AZURE_AD_TENANT_ID",
+      },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json(
-    {
-      clientId: process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID ?? "",
-      tenantId: process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "",
-      redirectUri: process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "/",
-    },
+    { clientId, tenantId, redirectUri },
     {
       headers: {
         "Cache-Control": "public, max-age=86400",
