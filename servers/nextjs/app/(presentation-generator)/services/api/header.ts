@@ -1,23 +1,24 @@
 import { loginRequest } from "@/lib/auth/msalConfig";
-import { msalInstance } from "@/lib/auth/MsalProvider";
+import { getMsalInstance } from "@/lib/auth/MsalProvider";
 
 /**
  * Acquire a Bearer token from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  */
 async function getAccessToken(): Promise<string | null> {
-  const account = msalInstance.getActiveAccount();
+  const instance = getMsalInstance();
+  const account = instance.getActiveAccount();
   if (!account) return null;
 
   try {
-    const response = await msalInstance.acquireTokenSilent({
+    const response = await instance.acquireTokenSilent({
       ...loginRequest,
       account,
     });
     return response.accessToken;
   } catch {
     // Token expired / interaction required — trigger a redirect
-    await msalInstance.acquireTokenRedirect(loginRequest);
+    await instance.acquireTokenRedirect(loginRequest);
     return null;
   }
 }

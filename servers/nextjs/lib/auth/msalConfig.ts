@@ -1,8 +1,11 @@
 import { Configuration, BrowserCacheLocation } from "@azure/msal-browser";
 
-const clientId = process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID ?? "";
-const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "";
-const redirectUri = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "/";
+/** Shape returned by the /api/auth-config server route. */
+export interface AuthConfig {
+  clientId: string;
+  tenantId: string;
+  redirectUri: string;
+}
 
 /**
  * Entra ID authentication is mandatory for this fork.
@@ -11,20 +14,25 @@ const redirectUri = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "/";
 export const isEntraAuthEnabled = true;
 
 /**
- * MSAL configuration for the Entra ID SPA (PKCE) flow.
- * No client secret is required — PKCE handles the proof-of-possession.
+ * Build an MSAL {@link Configuration} from values fetched at runtime.
+ *
+ * The auth config is served by `GET /api/auth-config` so that the Docker
+ * image does not need build-time `NEXT_PUBLIC_*` args — the same image works
+ * in any environment.
  */
-export const msalConfig: Configuration = {
-  auth: {
-    clientId,
-    authority: `https://login.microsoftonline.com/${tenantId}`,
-    redirectUri,
-    postLogoutRedirectUri: redirectUri,
-  },
-  cache: {
-    cacheLocation: BrowserCacheLocation.SessionStorage,
-  },
-};
+export function createMsalConfig(cfg: AuthConfig): Configuration {
+  return {
+    auth: {
+      clientId: cfg.clientId,
+      authority: `https://login.microsoftonline.com/${cfg.tenantId}`,
+      redirectUri: cfg.redirectUri,
+      postLogoutRedirectUri: cfg.redirectUri,
+    },
+    cache: {
+      cacheLocation: BrowserCacheLocation.SessionStorage,
+    },
+  };
+}
 
 /**
  * Scopes requested when acquiring tokens.
