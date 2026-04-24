@@ -1,13 +1,11 @@
-import { isEntraAuthEnabled, loginRequest } from "@/lib/auth/msalConfig";
+import { loginRequest } from "@/lib/auth/msalConfig";
 import { msalInstance } from "@/lib/auth/MsalProvider";
 
 /**
- * Acquire a Bearer token from the MSAL cache when Entra ID auth is enabled.
+ * Acquire a Bearer token from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  */
 async function getAccessToken(): Promise<string | null> {
-  if (!isEntraAuthEnabled) return null;
-
   const account = msalInstance.getActiveAccount();
   if (!account) return null;
 

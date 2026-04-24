@@ -1,9 +1,9 @@
 """
-Opt-in Entra ID JWT bearer-token validation middleware.
+Mandatory Entra ID JWT bearer-token validation middleware.
 
-Activated only when *both* AZURE_AD_TENANT_ID and AZURE_AD_CLIENT_ID
-environment variables are set.  When they are absent the middleware is a
-transparent pass-through, preserving the open-source experience.
+Requires *both* AZURE_AD_TENANT_ID and AZURE_AD_CLIENT_ID environment
+variables.  The application will **fail to start** if they are absent,
+unless ``DISABLE_AUTH=true`` is set for local development.
 
 The middleware validates the ``Authorization: Bearer <token>`` header on every
 request by:
@@ -147,29 +147,39 @@ def _find_key(jwks: Dict[str, Any], kid: str) -> Optional[Dict[str, Any]]:
 
 
 class EntraJWTAuthMiddleware(BaseHTTPMiddleware):
-    """Validate Entra ID JWT bearer tokens (opt-in)."""
+    """Validate Entra ID JWT bearer tokens (mandatory)."""
 
     def __init__(self, app: Any) -> None:
         super().__init__(app)
         self.tenant_id = os.getenv("AZURE_AD_TENANT_ID", "")
         self.client_id = os.getenv("AZURE_AD_CLIENT_ID", "")
-        self.enabled = bool(self.tenant_id and self.client_id)
-        if self.enabled:
-            logger.info(
-                "Entra ID JWT auth middleware enabled (tenant=%s)", self.tenant_id
+        # Auth can be explicitly disabled for local development
+        self._disabled = os.getenv("DISABLE_AUTH", "").lower() in ("true", "1", "yes")
+        if self._disabled:
+            logger.warning(
+                "Entra ID JWT auth middleware DISABLED via DISABLE_AUTH env var"
+            )
+        elif not (self.tenant_id and self.client_id):
+            raise RuntimeError(
+                "Entra ID auth is required but AZURE_AD_TENANT_ID and/or "
+                "AZURE_AD_CLIENT_ID are not set. Set both env vars or set "
+                "DISABLE_AUTH=true for local development."
             )
         else:
             logger.info(
-                "Entra ID JWT auth middleware disabled (AZURE_AD_TENANT_ID / "
-                "AZURE_AD_CLIENT_ID not set)"
+                "Entra ID JWT auth middleware enabled (tenant=%s)", self.tenant_id
             )
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        if not self.enabled:
+        if self._disabled:
             return await call_next(request)
 
         # Allow pre-flight CORS and health-check endpoints through
         if request.method == "OPTIONS":
+            return await call_next(request)
+
+        # Allow health endpoint without auth
+        if request.url.path == "/health":
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")
