@@ -8,24 +8,44 @@ import {
   AuthenticationResult,
 } from "@azure/msal-browser";
 import { MsalProvider as MsalReactProvider } from "@azure/msal-react";
-import { msalConfig } from "./msalConfig";
+import { createMsalConfig, AuthConfig } from "./msalConfig";
 
 /**
- * Singleton MSAL instance — created once and shared across the app.
+ * Module-level MSAL instance.  Created lazily after the auth config is
+ * fetched from `/api/auth-config` so the Docker image doesn't need
+ * build-time `NEXT_PUBLIC_*` args.
  */
-const msalInstance = new PublicClientApplication(msalConfig);
+let msalInstance: PublicClientApplication | null = null;
 
-export { msalInstance };
+/** Safe accessor for other modules (e.g. header.ts). */
+export function getMsalInstance(): PublicClientApplication {
+  if (!msalInstance) {
+    throw new Error(
+      "MSAL has not been initialised yet. " +
+        "getMsalInstance() must only be called after MsalProvider has mounted.",
+    );
+  }
+  return msalInstance;
+}
 
 /**
- * Wrapper around `@azure/msal-react` `MsalProvider` that initialises the
- * MSAL instance and sets the active account from redirect responses.
+ * Wrapper around `@azure/msal-react` `MsalProvider` that fetches the auth
+ * configuration from the server at runtime, then initialises the MSAL
+ * instance and sets the active account from redirect responses.
  */
 export function MsalProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const init = async () => {
+      // 1. Fetch auth config from the server (runtime, not build-time)
+      const res = await fetch("/api/auth-config");
+      const cfg: AuthConfig = await res.json();
+
+      // 2. Create the MSAL instance with the dynamic config
+      const config = createMsalConfig(cfg);
+      msalInstance = new PublicClientApplication(config);
+
       await msalInstance.initialize();
 
       // Handle redirect response (after Entra login page redirects back)
@@ -49,7 +69,7 @@ export function MsalProvider({ children }: { children: React.ReactNode }) {
           event.payload
         ) {
           const payload = event.payload as AuthenticationResult;
-          msalInstance.setActiveAccount(payload.account);
+          msalInstance!.setActiveAccount(payload.account);
         }
       });
 
@@ -59,7 +79,7 @@ export function MsalProvider({ children }: { children: React.ReactNode }) {
     init();
   }, []);
 
-  if (!isInitialized) {
+  if (!isInitialized || !msalInstance) {
     return null; // AuthGuard will show its own loading state
   }
 
