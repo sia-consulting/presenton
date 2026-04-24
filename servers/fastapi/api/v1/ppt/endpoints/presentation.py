@@ -51,7 +51,7 @@ from models.sql.async_presentation_generation_status import (
     AsyncPresentationGenerationTaskModel,
 )
 from dependencies.auth import get_current_user_id
-from utils.asset_directory_utils import get_exports_directory, get_images_directory
+from utils.asset_directory_utils import get_exports_directory, get_images_directory, get_user_exports_directory, get_user_images_directory
 from utils.llm_calls.generate_presentation_structure import (
     generate_presentation_structure,
 )
@@ -288,7 +288,7 @@ async def stream_presentation(
             detail="Outlines can not be empty",
         )
 
-    image_generation_service = ImageGenerationService(get_images_directory())
+    image_generation_service = ImageGenerationService(get_user_images_directory(user_id))
 
     async def inner():
         structure = presentation.get_structure()
@@ -463,6 +463,7 @@ async def export_presentation_as_pptx_or_pdf(
         id,
         presentation.title or str(uuid.uuid4()),
         export_as,
+        user_id=user_id,
     )
 
     return PresentationPathAndEditPath(
@@ -700,7 +701,7 @@ async def generate_presentation_handler(
             sql_session.add(async_status)
             await sql_session.commit()
 
-        image_generation_service = ImageGenerationService(get_images_directory())
+        image_generation_service = ImageGenerationService(get_user_images_directory(user_id))
         async_assets_generation_tasks = []
 
         # 7. Generate slide content concurrently (batched), then build slides and fetch assets
@@ -778,7 +779,8 @@ async def generate_presentation_handler(
 
         # 9. Export
         presentation_and_path = await export_presentation(
-            presentation_id, presentation.title or str(uuid.uuid4()), request.export_as
+            presentation_id, presentation.title or str(uuid.uuid4()), request.export_as,
+            user_id=user_id,
         )
 
         response = PresentationPathAndEditPath(
@@ -944,7 +946,8 @@ async def edit_presentation_with_new_content(
     await sql_session.commit()
 
     presentation_and_path = await export_presentation(
-        presentation.id, presentation.title or str(uuid.uuid4()), data.export_as
+        presentation.id, presentation.title or str(uuid.uuid4()), data.export_as,
+        user_id=user_id,
     )
 
     return PresentationPathAndEditPath(

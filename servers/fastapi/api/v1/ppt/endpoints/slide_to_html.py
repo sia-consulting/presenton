@@ -10,6 +10,7 @@ from openai import APIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 from utils.asset_directory_utils import get_images_directory, resolve_image_path_to_filesystem
+from dependencies.auth import get_current_user_id
 from services.database import get_async_session
 from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from .prompts import (
@@ -671,7 +672,7 @@ async def edit_html_with_images_endpoint(
     },
 )
 async def save_layouts(
-    request: SaveLayoutsRequest, session: AsyncSession = Depends(get_async_session)
+    request: SaveLayoutsRequest, session: AsyncSession = Depends(get_async_session), user_id: str = Depends(get_current_user_id)
 ):
     """
     Save multiple layouts for presentations.
@@ -737,6 +738,7 @@ async def save_layouts(
                 existing_layout.layout_name = layout_data.layout_name
                 existing_layout.layout_code = layout_data.layout_code
                 existing_layout.fonts = layout_data.fonts
+                existing_layout.user_id = user_id
                 existing_layout.updated_at = datetime.now()
             else:
                 # Create new layout
@@ -746,6 +748,7 @@ async def save_layouts(
                     layout_name=layout_data.layout_name,
                     layout_code=layout_data.layout_code,
                     fonts=layout_data.fonts,
+                    user_id=user_id,
                 )
                 session.add(new_layout)
 
@@ -786,7 +789,7 @@ async def save_layouts(
     },
 )
 async def get_layouts(
-    presentation: UUID, session: AsyncSession = Depends(get_async_session)
+    presentation: UUID, session: AsyncSession = Depends(get_async_session), user_id: str = Depends(get_current_user_id)
 ):
     """
     Retrieve all layouts for a specific presentation.
@@ -887,6 +890,7 @@ async def get_layouts(
 )
 async def get_presentations_summary(
     session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Get summary of all presentations with their layout counts.
@@ -954,6 +958,7 @@ async def get_presentations_summary(
 async def create_template(
     request: TemplateCreateRequest,
     session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     try:
         if not request.id or not request.name:
@@ -998,6 +1003,7 @@ async def create_template(
 async def delete_template(
     template_id: UUID,
     session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     try:
         await session.execute(

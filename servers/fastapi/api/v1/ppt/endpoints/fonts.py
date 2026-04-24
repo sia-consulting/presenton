@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from dependencies.auth import get_current_user_id
 from models.sql.key_value import KeyValueSqlModel
 from services.database import get_async_session
+from utils.asset_directory_utils import get_user_fonts_directory
 from utils.get_env import get_app_data_directory_env
 
 try:
@@ -140,6 +142,7 @@ async def upload_font(
     ),
     font_file: Optional[UploadFile] = File(None),
     sql_session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     upload_file = file or font_file
     if not upload_file:
@@ -156,7 +159,7 @@ async def upload_font(
 
     file_ext = os.path.splitext(upload_file.filename)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-    fonts_dir = _get_fonts_directory()
+    fonts_dir = get_user_fonts_directory(user_id)
     font_path = os.path.join(fonts_dir, unique_filename)
 
     try:
@@ -167,7 +170,7 @@ async def upload_font(
         raise HTTPException(status_code=500, detail="Error uploading font") from exc
 
     font_name = _extract_font_name_from_file(font_path, upload_file.filename)
-    font_url = f"/app_data/fonts/{unique_filename}"
+    font_url = f"/api/v1/ppt/user-files/{user_id}/fonts/{unique_filename}"
     font_detail = {
         "id": str(uuid.uuid4()),
         "name": font_name,
@@ -197,7 +200,7 @@ async def upload_font(
 
 
 @FONTS_ROUTER.get("/uploaded", response_model=FontListResponse)
-async def get_uploaded_fonts(sql_session: AsyncSession = Depends(get_async_session)):
+async def get_uploaded_fonts(sql_session: AsyncSession = Depends(get_async_session), user_id: str = Depends(get_current_user_id)):
     row = await _get_fonts_row(sql_session)
     fonts = _read_fonts_from_row(row)
 
@@ -226,7 +229,7 @@ async def get_uploaded_fonts(sql_session: AsyncSession = Depends(get_async_sessi
 
 @FONTS_ROUTER.delete("/{font_id}", status_code=204)
 async def delete_uploaded_font(
-    font_id: str, sql_session: AsyncSession = Depends(get_async_session)
+    font_id: str, sql_session: AsyncSession = Depends(get_async_session), user_id: str = Depends(get_current_user_id)
 ):
     row = await _get_fonts_row(sql_session)
     if not row:
