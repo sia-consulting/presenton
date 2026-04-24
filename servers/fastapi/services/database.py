@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+import logging
 import os
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -6,7 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlmodel import SQLModel
 
 from models.sql.async_presentation_generation_status import (
@@ -21,7 +22,9 @@ from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from models.sql.template import TemplateModel
 from models.sql.webhook_subscription import WebhookSubscription
 from utils.db_utils import get_database_url_and_connect_args, get_pool_kwargs
+from utils.azure_db_auth import is_managed_identity_enabled, get_postgres_access_token
 
+logger = logging.getLogger(__name__)
 
 database_url, connect_args = get_database_url_and_connect_args()
 
@@ -32,6 +35,30 @@ _pool_kwargs = get_pool_kwargs() if "sqlite" not in database_url else {}
 sql_engine: AsyncEngine = create_async_engine(
     database_url, connect_args=connect_args, **_pool_kwargs
 )
+
+# ---------------------------------------------------------------------------
+# Managed Identity token injection for PostgreSQL
+# ---------------------------------------------------------------------------
+# When DB_USE_MANAGED_IDENTITY is enabled, every *new* low-level connection
+# created by the pool triggers the ``do_connect`` event where we inject a
+# fresh Azure AD token as the password.  Combined with ``pool_pre_ping`` and
+# ``pool_recycle``, this ensures connections always carry a valid token.
+# ---------------------------------------------------------------------------
+if is_managed_identity_enabled() and "postgresql" in database_url:
+    def _inject_mi_token(dialect, conn_rec, cargs, cparams):
+        """SQLAlchemy ``do_connect`` event: inject a fresh MI token as the password."""
+        token = get_postgres_access_token()
+        cparams["password"] = token
+        logger.debug("Injected MI token into new PostgreSQL connection")
+
+    event.listen(sql_engine.sync_engine, "do_connect", _inject_mi_token)
+    logger.info(
+        "Managed Identity token injection registered on SQL engine "
+        "(pool_recycle=%s, pool_pre_ping=%s)",
+        _pool_kwargs.get("pool_recycle", "default"),
+        _pool_kwargs.get("pool_pre_ping", "default"),
+    )
+
 async_session_maker = async_sessionmaker(sql_engine, expire_on_commit=False)
 
 
