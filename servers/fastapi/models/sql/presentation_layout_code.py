@@ -13,6 +13,7 @@ class PresentationLayoutCodeModel(SQLModel, table=True):
     __tablename__ = "presentation_layout_codes"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(default="", index=True)
     presentation: uuid.UUID = Field(index=True, description="UUID of the presentation")
     layout_id: str = Field(description="Unique identifier for the layout")
     layout_name: str = Field(description="Display name of the layout")

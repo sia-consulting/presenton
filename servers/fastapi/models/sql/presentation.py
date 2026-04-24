@@ -14,6 +14,7 @@ class PresentationModel(SQLModel, table=True):
     __tablename__ = "presentations"
 
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
+    user_id: str = Field(default="", index=True)
     content: str
     n_slides: int
     language: str

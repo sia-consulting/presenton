@@ -7,6 +7,7 @@ from models.sql.presentation import PresentationModel
 from models.sql.slide import SlideModel
 from services.database import get_async_session
 from services.image_generation_service import ImageGenerationService
+from dependencies.auth import get_current_user_id
 from utils.asset_directory_utils import get_images_directory
 from utils.llm_calls.edit_slide import get_edited_slide_content
 from utils.llm_calls.edit_slide_html import get_edited_slide_html
@@ -23,12 +24,15 @@ async def edit_slide(
     id: Annotated[uuid.UUID, Body()],
     prompt: Annotated[str, Body()],
     sql_session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     slide = await sql_session.get(SlideModel, id)
     if not slide:
         raise HTTPException(status_code=404, detail="Slide not found")
     presentation = await sql_session.get(PresentationModel, slide.presentation)
     if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    if presentation.user_id != user_id:
         raise HTTPException(status_code=404, detail="Presentation not found")
 
     presentation_layout = presentation.get_layout()
@@ -68,10 +72,17 @@ async def edit_slide_html(
     prompt: Annotated[str, Body()],
     html: Annotated[Optional[str], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
+    user_id: str = Depends(get_current_user_id),
 ):
     slide = await sql_session.get(SlideModel, id)
     if not slide:
         raise HTTPException(status_code=404, detail="Slide not found")
+
+    presentation = await sql_session.get(PresentationModel, slide.presentation)
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    if presentation.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Presentation not found")
 
     html_to_edit = html or slide.html_content
     if not html_to_edit:
