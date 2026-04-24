@@ -5,9 +5,9 @@ import { getMsalInstance } from "@/lib/auth/MsalProvider";
  * Acquire a Bearer **access token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * The requested scope is `api://{clientId}/.default` so the access token's
- * `aud` matches the application's own client ID — exactly what the FastAPI
- * backend validates.
+ * The requested scope is `{clientId}/.default` (GUID-based, not `api://`
+ * URI) so the access token's `aud` matches the application's own client ID
+ * — exactly what the FastAPI backend validates.
  */
 async function getAccessToken(): Promise<string | null> {
   const instance = getMsalInstance();

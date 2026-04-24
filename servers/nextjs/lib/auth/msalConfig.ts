@@ -37,9 +37,11 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
 /**
  * Build the login/token request with the correct scope for the backend API.
  *
- * The scope `api://{clientId}/.default` requests an access token whose
- * `aud` matches the application's own client ID — exactly what the FastAPI
- * backend expects.  We do **not** request `User.Read` because we never call
+ * The scope `{clientId}/.default` requests an access token whose `aud`
+ * matches the application's own client ID — exactly what the FastAPI backend
+ * expects.  We use the GUID-based identifier (not the `api://` URI) because
+ * Azure AD requires it when an application requests a token for itself
+ * (AADSTS90009).  We do **not** request `User.Read` because we never call
  * Microsoft Graph.
  *
  * Must be called **after** the MSAL provider has initialised (i.e. after
@@ -47,7 +49,7 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
  */
 export function getLoginRequest(): { scopes: string[] } {
   const clientId = getStoredClientId();
-  return { scopes: [`api://${clientId}/.default`] };
+  return { scopes: [`${clientId}/.default`] };
 }
 
 // ---------------------------------------------------------------------------
