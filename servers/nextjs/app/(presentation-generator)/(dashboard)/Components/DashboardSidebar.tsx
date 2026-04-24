@@ -5,6 +5,7 @@ import { LayoutDashboard, Star, Brain, Settings, Palette } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { UserProfile } from "@/components/UserProfile";
 
 
 
@@ -117,6 +118,9 @@ const DashboardSidebar = () => {
 
 
 
+                <div className="mt-4 flex justify-center">
+                    <UserProfile />
+                </div>
             </div>
 
         </aside>

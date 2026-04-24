@@ -24,11 +24,6 @@ const NotFound = () => {
                             Go to Homepage
                         </Button>
                     </Link>
-                    <Link href="/contact">
-                        <Button className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700">
-                            Contact Support
-                        </Button>
-                    </Link>
                 </div>
 
             </div>

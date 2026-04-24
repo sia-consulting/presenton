@@ -58,7 +58,7 @@ const DashboardPage: React.FC = () => {
 
 
             <Link
-              href="/generate"
+              href="/upload"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-black text-sm font-semibold font-syne shadow-sm hover:shadow-md"
               aria-label="Create new presentation"
               style={{
