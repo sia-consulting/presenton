@@ -47,9 +47,11 @@ RUN npm install
 # Copy Next.js app
 COPY servers/nextjs/ /app/servers/nextjs/
 
-# Before the Next.js build
+# Before the Next.js build — these MUST be passed as --build-arg because
+# Next.js inlines NEXT_PUBLIC_* values at build time into the client bundle.
 ARG NEXT_PUBLIC_AZURE_AD_CLIENT_ID=""
 ARG NEXT_PUBLIC_AZURE_AD_TENANT_ID=""
+ARG NEXT_PUBLIC_AZURE_AD_REDIRECT_URI="/"
 
 # Build the Next.js app
 WORKDIR /app/servers/nextjs
