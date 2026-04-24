@@ -15,6 +15,7 @@ export function UserProfile() {
 
   const initials = (account.name || account.username || "?")
     .split(" ")
+    .filter((n) => n.length > 0)
     .map((n) => n[0])
     .join("")
     .toUpperCase()
