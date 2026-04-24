@@ -8,7 +8,7 @@ from models.sql.image_asset import ImageAsset
 from services.database import get_async_session
 from services.image_generation_service import ImageGenerationService
 from dependencies.auth import get_current_user_id
-from utils.asset_directory_utils import get_images_directory
+from utils.asset_directory_utils import get_images_directory, get_user_images_directory
 import os
 import uuid
 from utils.file_utils import get_file_name_with_random_uuid
@@ -20,7 +20,7 @@ IMAGES_ROUTER = APIRouter(prefix="/images", tags=["Images"])
 async def generate_image(
     prompt: str, sql_session: AsyncSession = Depends(get_async_session), user_id: str = Depends(get_current_user_id)
 ):
-    images_directory = get_images_directory()
+    images_directory = get_user_images_directory(user_id)
     image_prompt = ImagePrompt(prompt=prompt)
     image_generation_service = ImageGenerationService(images_directory)
 
@@ -58,7 +58,7 @@ async def upload_image(
     try:
         new_filename = get_file_name_with_random_uuid(file)
         image_path = os.path.join(
-            get_images_directory(), os.path.basename(new_filename)
+            get_user_images_directory(user_id), os.path.basename(new_filename)
         )
 
         with open(image_path, "wb") as f:

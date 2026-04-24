@@ -5,15 +5,16 @@ import tempfile
 import subprocess
 import uuid
 from typing import List, Optional, Dict
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from pydantic import BaseModel
 import aiohttp
 import asyncio
 import xml.etree.ElementTree as ET
 import re
 
+from dependencies.auth import get_current_user_id
 from services.documents_loader import DocumentsLoader
-from utils.asset_directory_utils import get_images_directory
+from utils.asset_directory_utils import get_images_directory, get_user_images_directory
 import uuid
 from constants.documents import POWERPOINT_TYPES
 
@@ -290,6 +291,7 @@ async def analyze_fonts_in_all_slides(slide_xmls: List[str]) -> FontAnalysisResu
 async def process_pptx_slides(
     pptx_file: UploadFile = File(..., description="PPTX file to process"),
     fonts: Optional[List[UploadFile]] = File(None, description="Optional font files"),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Process a PPTX file to extract slide screenshots and XML content.
@@ -351,7 +353,7 @@ async def process_pptx_slides(
             )
 
             # Move screenshots to images directory and generate URLs
-            images_dir = get_images_directory()
+            images_dir = get_user_images_directory(user_id)
             presentation_id = uuid.uuid4()
             presentation_images_dir = os.path.join(images_dir, str(presentation_id))
             os.makedirs(presentation_images_dir, exist_ok=True)
@@ -374,7 +376,7 @@ async def process_pptx_slides(
                     # Use shutil.copy2 instead of os.rename to handle cross-device moves
                     shutil.copy2(screenshot_path, permanent_screenshot_path)
                     screenshot_url = (
-                        f"/app_data/images/{presentation_id}/{screenshot_filename}"
+                        f"/api/v1/ppt/user-files/{user_id}/images/{presentation_id}/{screenshot_filename}"
                     )
                 else:
                     # Fallback if screenshot generation failed or file is empty placeholder

@@ -11,6 +11,7 @@ from api.v1.ppt.endpoints.pptx_slides import PPTX_SLIDES_ROUTER
 from api.v1.ppt.endpoints.pdf_slides import PDF_SLIDES_ROUTER
 from api.v1.ppt.endpoints.fonts import FONTS_ROUTER
 from api.v1.ppt.endpoints.icons import ICONS_ROUTER
+from api.v1.ppt.endpoints.user_files import USER_FILES_ROUTER
 from api.v1.ppt.endpoints.images import IMAGES_ROUTER
 from api.v1.ppt.endpoints.ollama import OLLAMA_ROUTER
 from api.v1.ppt.endpoints.outlines import OUTLINES_ROUTER
@@ -43,3 +44,4 @@ API_V1_PPT_ROUTER.include_router(CODEX_AUTH_ROUTER)
 API_V1_PPT_ROUTER.include_router(PPTX_FONTS_ROUTER)
 API_V1_PPT_ROUTER.include_router(THEMES_ROUTER)
 API_V1_PPT_ROUTER.include_router(THEME_ROUTER)
+API_V1_PPT_ROUTER.include_router(USER_FILES_ROUTER)

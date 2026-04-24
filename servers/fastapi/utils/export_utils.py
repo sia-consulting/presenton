@@ -10,12 +10,13 @@ from models.pptx_models import PptxPresentationModel
 from models.presentation_and_path import PresentationAndPath
 from services.pptx_presentation_creator import PptxPresentationCreator
 from services.temp_file_service import TEMP_FILE_SERVICE
-from utils.asset_directory_utils import get_exports_directory
+from utils.asset_directory_utils import get_exports_directory, get_user_exports_directory
 import uuid
 
 
 async def export_presentation(
-    presentation_id: uuid.UUID, title: str, export_as: Literal["pptx", "pdf"]
+    presentation_id: uuid.UUID, title: str, export_as: Literal["pptx", "pdf"],
+    user_id: str = "",
 ) -> PresentationAndPath:
     if export_as == "pptx":
 
@@ -39,7 +40,7 @@ async def export_presentation(
         pptx_creator = PptxPresentationCreator(pptx_model, temp_dir)
         await pptx_creator.create_ppt()
 
-        export_directory = get_exports_directory()
+        export_directory = get_user_exports_directory(user_id) if user_id else get_exports_directory()
         pptx_path = os.path.join(
             export_directory,
             f"{sanitize_filename(title or str(uuid.uuid4()))}.pptx",

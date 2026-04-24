@@ -171,3 +171,7 @@ def get_open_webui_image_url_env():
 
 def get_open_webui_image_api_key_env():
     return os.getenv("OPEN_WEBUI_IMAGE_API_KEY")
+
+
+def get_user_data_mount_path_env():
+    return os.getenv("USER_DATA_MOUNT_PATH")
