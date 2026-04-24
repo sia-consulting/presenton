@@ -5,10 +5,10 @@ const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? "";
 const redirectUri = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI ?? "/";
 
 /**
- * Whether Entra ID authentication is enabled.
- * Auth is enabled only when both client ID and tenant ID are set.
+ * Entra ID authentication is mandatory for this fork.
+ * This constant is kept for backward compatibility but is always true.
  */
-export const isEntraAuthEnabled = Boolean(clientId && tenantId);
+export const isEntraAuthEnabled = true;
 
 /**
  * MSAL configuration for the Entra ID SPA (PKCE) flow.
