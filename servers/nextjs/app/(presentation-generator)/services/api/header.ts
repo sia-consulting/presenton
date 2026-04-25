@@ -2,17 +2,15 @@ import { getLoginRequest } from "@/lib/auth/msalConfig";
 import { getMsalInstance } from "@/lib/auth/MsalProvider";
 
 /**
- * Acquire the Entra ID **ID token** from the MSAL cache.
+ * Acquire an Entra ID **access token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * We send the ID token (not the access token) because, with OIDC-only
- * scopes, the access token's audience is Microsoft Graph and its JWT
- * signature uses a non-standard nonce mechanism that our backend's
- * RS256 verifier cannot validate.  The ID token is a standard JWT with
- * `aud` = our application's client ID, verifiable against the tenant's
- * JWKS endpoint.
+ * The login request uses the `api://{clientId}/.default` scope, so the
+ * access token's audience is our own application (not Microsoft Graph)
+ * and it is signed with standard RS256 — verifiable by the backend
+ * against the tenant's JWKS endpoint.
  */
-async function getIdToken(): Promise<string | null> {
+async function getAccessToken(): Promise<string | null> {
   const instance = getMsalInstance();
   const account = instance.getActiveAccount();
   if (!account) return null;
@@ -24,7 +22,7 @@ async function getIdToken(): Promise<string | null> {
       ...request,
       account,
     });
-    return response.idToken;
+    return response.accessToken;
   } catch {
     // Token expired / interaction required — trigger a redirect
     await instance.acquireTokenRedirect(request);
@@ -33,7 +31,7 @@ async function getIdToken(): Promise<string | null> {
 }
 
 export const getHeader = async () => {
-  const token = await getIdToken();
+  const token = await getAccessToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -48,7 +46,7 @@ export const getHeader = async () => {
 };
 
 export const getHeaderForFormData = async () => {
-  const token = await getIdToken();
+  const token = await getAccessToken();
   const headers: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
