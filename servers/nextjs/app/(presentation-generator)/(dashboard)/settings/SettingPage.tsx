@@ -1,415 +1,125 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Loader2, Download, CheckCircle, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { notify } from "@/components/ui/sonner";
-import { RootState } from "@/store/store";
-import { useSelector } from "react-redux";
-import {
-  getLLMConfigValidationError,
-  handleSaveLLMConfig,
-} from "@/utils/storeHelpers";
-import {
-  checkIfSelectedOllamaModelIsPulled,
-  pullOllamaModel,
-} from "@/utils/providerUtils";
-import { useRouter, usePathname } from "next/navigation";
-import { LLMConfig } from "@/types/llm_config";
-import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import SettingSideBar from "./SettingSideBar";
-import TextProvider from "./TextProvider";
-import ImageProvider from "./ImageProvider";
-import { IMAGE_PROVIDERS, LLM_PROVIDERS } from "@/utils/providerConstants";
-
-// Button state interface
-interface ButtonState {
-  isLoading: boolean;
-  isDisabled: boolean;
-  text: string;
-  showProgress: boolean;
-  progressPercentage?: number;
-  status?: string;
-}
+import React from "react";
+import { Sun, Moon, LogOut, Globe } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { Locale } from "@/lib/i18n/translations";
+import { useMsal } from "@azure/msal-react";
 
 const SettingsPage = () => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [mode, setMode] = useState<'nanobanana' | 'presenton'>('presenton')
-  const [selectedProvider, setSelectedProvider] = useState<'text-provider' | 'image-provider'>('text-provider')
-  const userConfigState = useSelector((state: RootState) => state.userConfig);
-  const [llmConfig, setLlmConfig] = useState<LLMConfig>(
-    userConfigState.llm_config
-  );
-  const canChangeKeys = userConfigState.can_change_keys;
-  const [buttonState, setButtonState] = useState<ButtonState>({
-    isLoading: false,
-    isDisabled: false,
-    text: "Save Configuration",
-    showProgress: false,
-  });
+  const { theme, setTheme } = useTheme();
+  const { locale, setLocale, t } = useLanguage();
+  const { instance, accounts } = useMsal();
+  const account = accounts[0];
 
-  const [downloadingModel, setDownloadingModel] = useState<{
-    name: string;
-    size: number | null;
-    downloaded: number | null;
-    status: string;
-    done: boolean;
-  } | null>(null);
-  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
-  const downloadAbortRef = React.useRef<AbortController | null>(null);
-
-  const downloadProgress = React.useMemo(() => {
-    if (
-      downloadingModel &&
-      downloadingModel.downloaded !== null &&
-      downloadingModel.size !== null
-    ) {
-      return Math.round(
-        (downloadingModel.downloaded / downloadingModel.size) * 100
-      );
-    }
-    return 0;
-  }, [downloadingModel?.downloaded, downloadingModel?.size]);
-
-  const handleSaveConfig = async () => {
-    trackEvent(MixpanelEvent.Settings_SaveConfiguration_Button_Clicked, { pathname });
-    const validationError = getLLMConfigValidationError(llmConfig);
-    if (validationError) {
-      notify.error("Cannot save settings", validationError);
-      return;
-    }
-    try {
-      setButtonState(prev => ({
-        ...prev,
-        isLoading: true,
-        isDisabled: true,
-        text: "Saving Configuration...",
-      }));
-      trackEvent(MixpanelEvent.Settings_SaveConfiguration_API_Call);
-      await handleSaveLLMConfig(llmConfig);
-      if (llmConfig.LLM === "ollama" && llmConfig.OLLAMA_MODEL) {
-        trackEvent(MixpanelEvent.Settings_CheckOllamaModelPulled_API_Call);
-        const isPulled = await checkIfSelectedOllamaModelIsPulled(
-          llmConfig.OLLAMA_MODEL
-        );
-        if (!isPulled) {
-          setShowDownloadModal(true);
-          setDownloadingModel({
-            name: llmConfig.OLLAMA_MODEL || "",
-            size: null,
-            downloaded: null,
-            status: "pulling",
-            done: false,
-          });
-          trackEvent(MixpanelEvent.Settings_DownloadOllamaModel_API_Call);
-          const downloadOutcome = await handleModelDownload();
-          if (downloadOutcome === "cancelled") {
-            return;
-          }
-        }
-      }
-      notify.info(
-        "Settings saved",
-        "Your configuration was saved successfully."
-      );
-      setButtonState(prev => ({
-        ...prev,
-        isLoading: false,
-        isDisabled: false,
-        text: "Save Configuration",
-      }));
-      trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/upload" });
-      router.push("/upload");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while saving.";
-      notify.error("Could not save settings", message);
-      setButtonState(prev => ({
-        ...prev,
-        isLoading: false,
-        isDisabled: false,
-        text: "Save Configuration",
-      }));
-    }
+  const handleLogout = () => {
+    instance.logoutRedirect();
   };
-
-  const handleModelDownload = async (): Promise<"completed" | "cancelled"> => {
-    const ac = new AbortController();
-    downloadAbortRef.current = ac;
-    try {
-      await pullOllamaModel(
-        llmConfig.OLLAMA_MODEL!,
-        setDownloadingModel,
-        ac.signal
-      );
-      return "completed";
-    } catch (e) {
-      const aborted = e instanceof Error && e.name === "AbortError";
-      if (aborted) {
-        setDownloadingModel(null);
-        setShowDownloadModal(false);
-        setButtonState({
-          isLoading: false,
-          isDisabled: false,
-          text: "Save Configuration",
-          showProgress: false,
-        });
-        notify.info(
-          "Download cancelled",
-          "The Ollama model download was stopped. Your settings are already saved—you can save again to retry the download."
-        );
-        return "cancelled";
-      }
-      setDownloadingModel(null);
-      setShowDownloadModal(false);
-      throw e;
-    } finally {
-      downloadAbortRef.current = null;
-    }
-  };
-
-  useEffect(() => {
-    if (
-      downloadingModel &&
-      downloadingModel.downloaded !== null &&
-      downloadingModel.size !== null
-    ) {
-      const percentage = Math.round(
-        (downloadingModel.downloaded / downloadingModel.size) * 100
-      );
-      setButtonState({
-        isLoading: true,
-        isDisabled: true,
-        text: `Downloading Model (${percentage}%)`,
-        showProgress: true,
-        progressPercentage: percentage,
-        status: downloadingModel.status,
-      });
-    }
-
-    if (downloadingModel && downloadingModel.done) {
-      setTimeout(() => {
-        setShowDownloadModal(false);
-        setDownloadingModel(null);
-        notify.success(
-          "Model ready",
-          "The Ollama model finished downloading successfully."
-        );
-      }, 2000);
-    }
-  }, [downloadingModel]);
-
-  useEffect(() => {
-    if (!canChangeKeys) {
-      router.push("/dashboard");
-    }
-  }, [canChangeKeys, router]);
-
-  if (!canChangeKeys) {
-    return null;
-  }
-
-
-  const textProviderKey = llmConfig.LLM || "openai";
-  const textProviderLabel =
-    LLM_PROVIDERS[textProviderKey]?.label || textProviderKey;
-  const selectedTextModel =
-    textProviderKey === "openai"
-      ? llmConfig.OPENAI_MODEL
-      : textProviderKey === "google"
-        ? llmConfig.GOOGLE_MODEL
-        : textProviderKey === "anthropic"
-          ? llmConfig.ANTHROPIC_MODEL
-          : textProviderKey === "ollama"
-            ? llmConfig.OLLAMA_MODEL
-            : textProviderKey === "custom"
-              ? llmConfig.CUSTOM_MODEL
-              : textProviderKey === "azure_ai_foundry"
-                ? llmConfig.AZURE_AI_FOUNDRY_MODEL
-                : textProviderKey === "codex"
-                  ? llmConfig.CODEX_MODEL
-                  : "";
-  const textSummary = selectedTextModel
-    ? `${textProviderLabel} (${selectedTextModel})`
-    : textProviderLabel;
-
-  const imageSummary = llmConfig.DISABLE_IMAGE_GENERATION
-    ? "Image generation disabled"
-    : llmConfig.IMAGE_PROVIDER
-      ? IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER]?.label || llmConfig.IMAGE_PROVIDER
-      : "No image provider";
 
   return (
     <div className="h-screen font-syne flex flex-col overflow-hidden relative">
-      <div
-        className='fixed z-0 bottom-[-14.5rem] left-0 w-full h-full'
-        style={{
-          height: "341px",
-          borderRadius: '1440px',
-          background: 'radial-gradient(5.92% 104.69% at 50% 100%, rgba(122, 90, 248, 0.00) 0%, rgba(255, 255, 255, 0.00) 100%), radial-gradient(50% 50% at 50% 50%, rgba(122, 90, 248, 0.80) 0%, rgba(122, 90, 248, 0.00) 100%)',
-        }}
-      />
+      <main className="w-full mx-auto overflow-auto px-6 pb-20">
+        <div className="sticky top-0 right-0 z-50 py-[28px] backdrop-blur-sm mb-4">
+          <h3 className="text-[28px] tracking-[-0.84px] font-unbounded font-normal text-foreground">
+            {t("settings")}
+          </h3>
+        </div>
 
-      <main className="w-full mx-auto gap-6   overflow-hidden flex ">
-        <SettingSideBar mode={mode} setMode={setMode} selectedProvider={selectedProvider} setSelectedProvider={setSelectedProvider} />
-        <div className="w-full">
-          <div className="sticky top-0 right-0 z-50 py-[28px]   backdrop-blur mb-4 ">
-            <div className="flex  gap-3 items-center ">
-              <h3 className=" text-[28px] tracking-[-0.84px] font-unbounded font-normal text-black flex items-center gap-2">
-                Settings
-              </h3>
-              <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#7A5AF8] border border-[#EDEEEF]  font-medium ">
-                {textSummary} · {imageSummary}
-              </p>
-
+        <div className="max-w-2xl space-y-8">
+          {/* Theme Section */}
+          <section className="bg-card border border-border rounded-2xl p-6">
+            <div className="mb-1">
+              <h4 className="text-base font-semibold text-foreground">{t("theme")}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{t("themeDescription")}</p>
             </div>
-          </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setTheme("light")}
+                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  theme === "light"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-foreground border-border hover:bg-accent"
+                }`}
+              >
+                <Sun className="w-4 h-4" />
+                {t("light")}
+              </button>
+              <button
+                onClick={() => setTheme("dark")}
+                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  theme === "dark"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-foreground border-border hover:bg-accent"
+                }`}
+              >
+                <Moon className="w-4 h-4" />
+                {t("dark")}
+              </button>
+            </div>
+          </section>
 
-          {mode === 'nanobanana' && <div className=" w-full bg-[#F9F8F8] p-7 rounded-[20px]">
-            <h4>Nano Banana</h4>
-          </div>}
-          {mode === 'presenton' && selectedProvider === 'text-provider' && <TextProvider
+          {/* Language Section */}
+          <section className="bg-card border border-border rounded-2xl p-6">
+            <div className="mb-1">
+              <h4 className="text-base font-semibold text-foreground">{t("language")}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{t("languageDescription")}</p>
+            </div>
+            <div className="flex gap-3 mt-4">
+              {([
+                { code: "en" as Locale, label: t("english"), flag: "🇬🇧" },
+                { code: "de" as Locale, label: t("german"), flag: "🇩🇪" },
+              ]).map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => setLocale(lang.code)}
+                  className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-medium transition-all ${
+                    locale === lang.code
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  <span className="text-base">{lang.flag}</span>
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </section>
 
-
-            onInputChange={(value, field) => {
-              setLlmConfig(prev => ({
-                ...prev,
-                [field]: value
-              }));
-            }}
-            llmConfig={llmConfig}
-          />}
-          {mode === 'presenton' && selectedProvider === 'image-provider' && <ImageProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
-
+          {/* Account Section */}
+          {account && (
+            <section className="bg-card border border-border rounded-2xl p-6">
+              <div className="mb-1">
+                <h4 className="text-base font-semibold text-foreground">{t("account")}</h4>
+                <p className="text-sm text-muted-foreground mt-1">{t("accountDescription")}</p>
+              </div>
+              <div className="flex items-center justify-between mt-4 p-4 rounded-xl bg-accent/50 border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#7A5AF8] text-white flex items-center justify-center text-sm font-semibold">
+                    {(account.name || account.username || "?")
+                      .split(" ")
+                      .filter((n) => n.length > 0)
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{account.name || account.username}</p>
+                    <p className="text-xs text-muted-foreground">{account.username}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t("logout")}
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       </main>
-
-      {/* Fixed Bottom Button */}
-      <div className=" mx-auto fixed bottom-20 right-5 ">
-        <button
-          onClick={handleSaveConfig}
-          disabled={buttonState.isDisabled}
-          style={{
-            background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
-            color: "#101323",
-          }}
-          className={`w-full font-syne font-semibold flex items-center justify-center gap-2 py-3 px-5 rounded-[58px] transition-all duration-500 ${buttonState.isDisabled
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200"
-            } text-white`}
-        >
-          {buttonState.isLoading ? (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {buttonState.text}
-            </div>
-          ) : (
-            buttonState.text
-          )}
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Download Progress Modal */}
-      {showDownloadModal && downloadingModel && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-            {/* Modal Content */}
-            <div className="text-center">
-              {/* Icon */}
-              <div className="mb-4">
-                {downloadingModel.done ? (
-                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
-                ) : (
-                  <Download className="w-12 h-12 text-blue-600 mx-auto animate-pulse" />
-                )}
-              </div>
-
-              {/* Title */}
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {downloadingModel.done
-                  ? "Download Complete!"
-                  : "Downloading Model"}
-              </h3>
-
-              {/* Model Name */}
-              <p className="text-sm text-gray-600 mb-6">
-                {llmConfig.OLLAMA_MODEL}
-              </p>
-
-              {/* Progress Bar */}
-              {downloadProgress > 0 && (
-                <div className="mb-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${downloadProgress}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {downloadProgress}% Complete
-                  </p>
-                </div>
-              )}
-
-              {/* Status */}
-              {downloadingModel.status && (
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 capitalize">
-                    {downloadingModel.status}
-                  </span>
-                </div>
-              )}
-
-              {/* Status Message */}
-              {downloadingModel.status &&
-                downloadingModel.status !== "pulled" && (
-                  <div className="text-xs text-gray-500">
-                    {downloadingModel.status === "downloading" &&
-                      "Downloading model files..."}
-                    {downloadingModel.status === "verifying" &&
-                      "Verifying model integrity..."}
-                    {downloadingModel.status === "pulling" &&
-                      "Pulling model from registry..."}
-                  </div>
-                )}
-
-              {/* Download Info */}
-              {downloadingModel.downloaded && downloadingModel.size && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between text-xs text-gray-600">
-                    <span>
-                      Downloaded:{" "}
-                      {(downloadingModel.downloaded / 1024 / 1024).toFixed(1)}{" "}
-                      MB
-                    </span>
-                    <span>
-                      Total: {(downloadingModel.size / 1024 / 1024).toFixed(1)}{" "}
-                      MB
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {!downloadingModel.done && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-lg border-gray-300 text-gray-800 hover:bg-gray-50"
-                    onClick={() => downloadAbortRef.current?.abort()}
-                  >
-                    Cancel download
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
