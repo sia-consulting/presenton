@@ -42,8 +42,11 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
  * `{clientId}/.default`.  This avoids AADSTS errors caused by an
  * application requesting an access token for itself.
  *
- * The backend skips audience validation, so the access token (whose `aud`
- * is Microsoft Graph) is accepted without issues.
+ * The frontend sends the **ID token** (not the access token) to the
+ * backend.  The ID token is a standard RS256 JWT with `aud` = our
+ * client ID, verifiable against the tenant JWKS.  The access token
+ * from OIDC-only scopes targets Microsoft Graph and uses a non-standard
+ * nonce-based signature that our backend cannot verify.
  */
 export function getLoginRequest(): { scopes: string[] } {
   return { scopes: ["openid", "email", "profile", "offline_access"] };
