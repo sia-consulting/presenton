@@ -229,7 +229,7 @@ class EntraJWTAuthMiddleware(BaseHTTPMiddleware):
             if payload.get("iss", "") not in valid_issuers:
                 raise ValueError(f"Invalid issuer: {payload.get('iss')}")
 
-            # Validate audience (ID token should have aud = client_id)
+            # Validate audience (access token should have aud = api://client_id or client_id)
             valid_audiences = {
                 self.client_id,
                 f"api://{self.client_id}",

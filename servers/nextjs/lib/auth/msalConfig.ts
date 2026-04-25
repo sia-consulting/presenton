@@ -35,21 +35,23 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
 }
 
 /**
- * Build the login/token request with standard OIDC scopes.
+ * Build the login/token request with an application-specific scope.
  *
- * We request only OIDC scopes (`openid`, `email`, `profile`,
- * `offline_access`) instead of a resource-specific scope like
- * `{clientId}/.default`.  This avoids AADSTS errors caused by an
- * application requesting an access token for itself.
+ * We request `api://{clientId}/.default` so that MSAL issues an access
+ * token whose audience (`aud`) is our own application — not Microsoft
+ * Graph.  This access token is a standard RS256 JWT that the backend
+ * can verify against the tenant's JWKS endpoint.
  *
- * The frontend sends the **ID token** (not the access token) to the
- * backend.  The ID token is a standard RS256 JWT with `aud` = our
- * client ID, verifiable against the tenant JWKS.  The access token
- * from OIDC-only scopes targets Microsoft Graph and uses a non-standard
- * nonce-based signature that our backend cannot verify.
+ * MSAL automatically appends the OIDC scopes (`openid`, `profile`,
+ * `offline_access`) so the login flow still returns an ID token and
+ * refresh token alongside the access token.
+ *
+ * **Pre-requisite:** The Entra ID app registration must have an
+ * Application ID URI configured (typically `api://{clientId}`).
  */
 export function getLoginRequest(): { scopes: string[] } {
-  return { scopes: ["openid", "email", "profile", "offline_access"] };
+  const clientId = getStoredClientId();
+  return { scopes: [`api://${clientId}/.default`] };
 }
 
 // ---------------------------------------------------------------------------
