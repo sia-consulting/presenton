@@ -26,19 +26,19 @@ export function UserProfile() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-1 w-full">
       <div
         className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-semibold"
         title={account.name || account.username}
       >
         {initials}
       </div>
-      <span className="text-sm text-gray-700 hidden sm:inline max-w-[120px] truncate">
+      <span className="text-[11px] text-gray-700 text-center w-full truncate">
         {account.name || account.username}
       </span>
       <button
         onClick={handleLogout}
-        className="text-xs text-gray-500 hover:text-gray-700 underline ml-1"
+        className="text-[11px] text-gray-500 hover:text-gray-700 underline"
       >
         Logout
       </button>
