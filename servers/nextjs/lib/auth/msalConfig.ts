@@ -42,10 +42,8 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
  * `{clientId}/.default`.  This avoids AADSTS errors caused by an
  * application requesting an access token for itself.
  *
- * Because there is no resource-specific scope, the MSAL access token's
- * `aud` will **not** match our backend's client ID.  Callers must therefore
- * send the **ID token** (whose `aud` *is* the client ID) as the Bearer
- * token — see `header.ts`.
+ * The backend skips audience validation, so the access token (whose `aud`
+ * is Microsoft Graph) is accepted without issues.
  */
 export function getLoginRequest(): { scopes: string[] } {
   return { scopes: ["openid", "email", "profile", "offline_access"] };

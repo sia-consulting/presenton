@@ -10,7 +10,7 @@ request by:
 
 1. Fetching Microsoft's public JWKS (cached in-memory for 1 hour).
 2. Verifying the JWT signature (RS256) against the JWKS.
-3. Checking ``aud``, ``iss``, ``exp`` / ``nbf`` claims.
+3. Checking ``iss``, ``exp`` / ``nbf`` claims.
 
 No client secret is required — this relies purely on Microsoft's published
 public keys.
@@ -220,12 +220,6 @@ class EntraJWTAuthMiddleware(BaseHTTPMiddleware):
                 raise ValueError("Token has expired")
             if payload.get("nbf", 0) > now + 300:
                 raise ValueError("Token not yet valid")
-
-            # Validate audience (should be the client ID or api://<client_id>)
-            aud = payload.get("aud", "")
-            valid_audiences = {self.client_id, f"api://{self.client_id}"}
-            if aud not in valid_audiences:
-                raise ValueError(f"Invalid audience: {aud}")
 
             # Validate issuer
             valid_issuers = {
