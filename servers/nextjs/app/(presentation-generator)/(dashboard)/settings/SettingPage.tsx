@@ -72,13 +72,14 @@ const SettingsPage = () => {
                 <button
                   key={lang.code}
                   onClick={() => setLocale(lang.code)}
+                  aria-label={lang.label}
                   className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-medium transition-all ${
                     locale === lang.code
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-card text-foreground border-border hover:bg-accent"
                   }`}
                 >
-                  <span className="text-base">{lang.flag}</span>
+                  <span className="text-base" aria-hidden="true">{lang.flag}</span>
                   {lang.label}
                 </button>
               ))}

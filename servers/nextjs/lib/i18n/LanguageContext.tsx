@@ -25,11 +25,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setLocaleState(getStoredLocale());
+    const stored = getStoredLocale();
+    setLocaleState(stored);
+    document.documentElement.lang = stored;
     setMounted(true);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
+    if (typeof window === "undefined") return;
     setLocaleState(newLocale);
     localStorage.setItem(STORAGE_KEY, newLocale);
     document.documentElement.lang = newLocale;
