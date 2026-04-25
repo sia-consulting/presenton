@@ -5,7 +5,7 @@ import { LayoutDashboard, Star, Brain, Settings, Palette } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserProfile } from "@/components/UserProfile";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 
 
@@ -23,7 +23,7 @@ export const BelongingNavItems = [
 
 const DashboardSidebar = () => {
 
-
+    const { t } = useLanguage();
     const pathname = usePathname();
     const activeTab = pathname.split("?")[0].split("/").pop();
     const router = useRouter();
@@ -33,12 +33,12 @@ const DashboardSidebar = () => {
 
     return (
         <aside
-            className="sticky top-0 h-screen w-[115px] flex flex-col justify-between bg-[#F6F6F9] backdrop-blur border-r border-slate-200/60 px-4  py-8"
+            className="sticky top-0 h-screen w-[115px] flex flex-col justify-between bg-secondary backdrop-blur border-r border-border px-4  py-8"
             aria-label="Dashboard sidebar"
         >
             <div>
 
-                <div onClick={() => router.push("/dashboard")} className="flex items-center  pb-6 border-b border-slate-200/60   gap-2    ">
+                <div onClick={() => router.push("/dashboard")} className="flex items-center  pb-6 border-b border-border   gap-2    ">
                     <div className="bg-[#7C51F8] rounded-full cursor-pointer p-1 flex justify-center items-center mx-auto">
                         <img src="/logo-with-bg.png" alt="Presenton logo" className="h-[40px] object-contain w-full" />
                     </div>
@@ -57,8 +57,8 @@ const DashboardSidebar = () => {
                             aria-label="Dashboard"
                             title="Dashboard"
                         >
-                            <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#5146E5]" : "text-slate-600"].join(" ")} />
-                            <span className="text-[11px] text-slate-800">Dashboard</span>
+                            <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#5146E5]" : "text-muted-foreground"].join(" ")} />
+                            <span className="text-[11px] text-foreground">{t("dashboard")}</span>
                         </Link>
                         <Link
                             prefetch={false}
@@ -71,8 +71,8 @@ const DashboardSidebar = () => {
                             title="Templates"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Star className={`h-4 w-4 ${pathname === "/templates" ? "text-[#5146E5]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Templates</span>
+                                <Star className={`h-4 w-4 ${pathname === "/templates" ? "text-[#5146E5]" : "text-muted-foreground"}`} />
+                                <span className="text-[11px] text-foreground">{t("templates")}</span>
                             </div>
                         </Link>
                         <Link
@@ -86,41 +86,29 @@ const DashboardSidebar = () => {
                             title="Theme"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#5146E5]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Themes</span>
+                                <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#5146E5]" : "text-muted-foreground"}`} />
+                                <span className="text-[11px] text-foreground">{t("themes")}</span>
                             </div>
                         </Link>
                     </div>
                 </nav>
             </div>
 
-            <div className=" pt-5 border-t border-slate-200/60  font-syne "
+            <div className=" pt-5 border-t border-border  font-syne "
             >
-                {BelongingNavItems.map(({ key, label: itemLabel, icon: Icon }) => {
-                    const isActive = activeTab === key;
-                    return (
-                        <Link
-                            prefetch={false}
-                            key={key}
-                            href={`/${key}`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors ",
-                                isActive ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label={itemLabel}
-                            title={itemLabel}
-                        >
-                            <Icon className={["h-4 w-4", isActive ? "text-[#5146E5]" : "text-slate-600"].join(" ")} />
-                            <span className="text-[11px] text-slate-800">{itemLabel}</span>
-                        </Link>
-                    );
-                })}
-
-
-
-                <div className="mt-4 flex justify-center">
-                    <UserProfile />
-                </div>
+                <Link
+                    prefetch={false}
+                    href="/settings"
+                    className={[
+                        "flex flex-col tex-center items-center gap-2  transition-colors ",
+                        activeTab === "settings" ? "" : "ring-transparent",
+                    ].join(" ")}
+                    aria-label={t("settings")}
+                    title={t("settings")}
+                >
+                    <Settings className={["h-4 w-4", activeTab === "settings" ? "text-[#5146E5]" : "text-muted-foreground"].join(" ")} />
+                    <span className="text-[11px] text-foreground">{t("settings")}</span>
+                </Link>
             </div>
 
         </aside>
@@ -128,5 +116,4 @@ const DashboardSidebar = () => {
 };
 
 export default DashboardSidebar;
-
 

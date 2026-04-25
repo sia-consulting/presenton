@@ -6,6 +6,8 @@ import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
 import { EntraAuthProvider } from "@/lib/auth/EntraAuthProvider";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 const inter = localFont({
   src: [
     {
@@ -81,20 +83,22 @@ export default function RootLayout({
 }>) {
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${unbounded.variable} ${syne.variable} antialiased`}
       >
-        <Providers>
-          <EntraAuthProvider>
-            <MixpanelInitializer>
-
-              {children}
-
-            </MixpanelInitializer>
-          </EntraAuthProvider>
-        </Providers>
-        <Toaster position="top-center" />
+        <ThemeProvider>
+          <LanguageProvider>
+            <Providers>
+              <EntraAuthProvider>
+                <MixpanelInitializer>
+                  {children}
+                </MixpanelInitializer>
+              </EntraAuthProvider>
+            </Providers>
+            <Toaster position="top-center" />
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

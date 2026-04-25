@@ -4,13 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { RootState } from "@/store/store";
-import { useSelector } from "react-redux";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 const HeaderNav = () => {
 
-  const canChangeKeys = useSelector((state: RootState) => state.userConfig.can_change_keys);
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
     <div className="flex items-center gap-2">
@@ -18,29 +17,27 @@ const HeaderNav = () => {
       <Link
         href="/dashboard"
         prefetch={false}
-        className="flex items-center gap-2 px-3 py-2 text-[#101323]  rounded-md transition-colors outline-none"
+        className="flex items-center gap-2 px-3 py-2 text-foreground  rounded-md transition-colors outline-none"
         role="menuitem"
         onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/dashboard" })}
       >
         <LayoutDashboard className="w-5 h-5" />
         <span className="text-sm font-medium font-inter">
-          Dashboard
+          {t("dashboard")}
         </span>
       </Link>
-      {canChangeKeys && (
-        <Link
-          href="/settings"
-          prefetch={false}
-          className="flex items-center gap-2 px-3 py-2 text-[#101323]  rounded-md transition-colors outline-none"
-          role="menuitem"
-          onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/settings" })}
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-sm font-medium font-inter">
-            Settings
-          </span>
-        </Link>
-      )}
+      <Link
+        href="/settings"
+        prefetch={false}
+        className="flex items-center gap-2 px-3 py-2 text-foreground  rounded-md transition-colors outline-none"
+        role="menuitem"
+        onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/settings" })}
+      >
+        <Settings className="w-5 h-5" />
+        <span className="text-sm font-medium font-inter">
+          {t("settings")}
+        </span>
+      </Link>
     </div>
   );
 };
