@@ -2,14 +2,16 @@ import { getLoginRequest } from "@/lib/auth/msalConfig";
 import { getMsalInstance } from "@/lib/auth/MsalProvider";
 
 /**
- * Acquire a Bearer **access token** from the MSAL cache.
+ * Acquire a Bearer **ID token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * The requested scope is `{clientId}/.default` (GUID-based, not `api://`
- * URI) so the access token's `aud` matches the application's own client ID
- * — exactly what the FastAPI backend validates.
+ * We use the ID token (not the access token) because the requested scopes
+ * are standard OIDC scopes (`openid`, `email`, `profile`, `offline_access`)
+ * — the resulting access token's `aud` is Microsoft Graph, not our app.
+ * The ID token's `aud` *is* the application's client ID, which is what the
+ * FastAPI backend validates.
  */
-async function getAccessToken(): Promise<string | null> {
+async function getIdToken(): Promise<string | null> {
   const instance = getMsalInstance();
   const account = instance.getActiveAccount();
   if (!account) return null;
@@ -21,7 +23,7 @@ async function getAccessToken(): Promise<string | null> {
       ...request,
       account,
     });
-    return response.accessToken;
+    return response.idToken;
   } catch {
     // Token expired / interaction required — trigger a redirect
     await instance.acquireTokenRedirect(request);
@@ -30,7 +32,7 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 export const getHeader = async () => {
-  const token = await getAccessToken();
+  const token = await getIdToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -45,7 +47,7 @@ export const getHeader = async () => {
 };
 
 export const getHeaderForFormData = async () => {
-  const token = await getAccessToken();
+  const token = await getIdToken();
   const headers: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",

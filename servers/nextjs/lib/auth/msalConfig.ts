@@ -35,21 +35,20 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
 }
 
 /**
- * Build the login/token request with the correct scope for the backend API.
+ * Build the login/token request with standard OIDC scopes.
  *
- * The scope `{clientId}/.default` requests an access token whose `aud`
- * matches the application's own client ID — exactly what the FastAPI backend
- * expects.  We use the GUID-based identifier (not the `api://` URI) because
- * Azure AD requires it when an application requests a token for itself
- * (AADSTS90009).  We do **not** request `User.Read` because we never call
- * Microsoft Graph.
+ * We request only OIDC scopes (`openid`, `email`, `profile`,
+ * `offline_access`) instead of a resource-specific scope like
+ * `{clientId}/.default`.  This avoids AADSTS errors caused by an
+ * application requesting an access token for itself.
  *
- * Must be called **after** the MSAL provider has initialised (i.e. after
- * the auth config has been fetched from `/api/auth-config`).
+ * Because there is no resource-specific scope, the MSAL access token's
+ * `aud` will **not** match our backend's client ID.  Callers must therefore
+ * send the **ID token** (whose `aud` *is* the client ID) as the Bearer
+ * token — see `header.ts`.
  */
 export function getLoginRequest(): { scopes: string[] } {
-  const clientId = getStoredClientId();
-  return { scopes: [`${clientId}/.default`] };
+  return { scopes: ["openid", "email", "profile", "offline_access"] };
 }
 
 // ---------------------------------------------------------------------------
