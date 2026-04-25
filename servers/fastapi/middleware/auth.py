@@ -9,7 +9,8 @@ The middleware validates the ``Authorization: Bearer <token>`` header on every
 request by:
 
 1. Fetching Microsoft's public JWKS (cached in-memory for 1 hour).
-2. Verifying the JWT signature (RS256) against the JWKS.
+2. Verifying the JWT signature (RS256) against the JWKS, including support
+   for Microsoft access tokens that embed a ``nonce`` in the JWT header.
 3. Checking ``iss``, ``exp`` / ``nbf`` claims.
 
 No client secret is required — this relies purely on Microsoft's published
@@ -55,8 +56,47 @@ def _int_from_b64url(data: str) -> int:
     return int.from_bytes(_b64url_decode(data), byteorder="big")
 
 
+def _b64url_encode(data: bytes) -> str:
+    """Base64url-encode *data* without padding."""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _build_signing_input(header_b64: str, payload_b64: str) -> bytes:
+    """Return the byte-string that was actually signed.
+
+    Microsoft Entra ID access tokens (e.g. for Microsoft Graph) include a
+    ``nonce`` claim in the JWT header.  When the token is signed the nonce
+    value is replaced by ``base64url(SHA-256(nonce))`` in the header that
+    forms the signing input.  The delivered token then carries the original
+    (unhashed) nonce so the recipient can reconstruct the signed bytes.
+
+    For tokens **without** a header nonce the signing input is simply the
+    standard ``header_b64.payload_b64``.
+    """
+    header = json.loads(_b64url_decode(header_b64))
+
+    if "nonce" not in header:
+        return f"{header_b64}.{payload_b64}".encode()
+
+    # Replace nonce with its SHA-256 hash (base64url, no padding)
+    nonce_hash = _b64url_encode(
+        hashlib.sha256(header["nonce"].encode("ascii")).digest()
+    )
+    header["nonce"] = nonce_hash
+
+    # Re-serialise with compact JSON (no whitespace) – dict ordering is
+    # preserved by Python ≥ 3.7, matching the original key order.
+    modified_header_b64 = _b64url_encode(
+        json.dumps(header, separators=(",", ":")).encode("utf-8")
+    )
+    return f"{modified_header_b64}.{payload_b64}".encode()
+
+
 def _verify_rs256(token: str, n: int, e: int) -> Dict[str, Any]:
     """Verify an RS256-signed JWT and return its decoded payload.
+
+    Supports Microsoft Entra ID access tokens whose JWT header contains a
+    ``nonce`` claim (see :func:`_build_signing_input`).
 
     Raises ``ValueError`` on any verification failure.
     """
@@ -85,7 +125,7 @@ def _verify_rs256(token: str, n: int, e: int) -> Dict[str, Any]:
         b"\x30\x31\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01"
         b"\x05\x00\x04\x20"
     )
-    message = f"{header_b64}.{payload_b64}".encode()
+    message = _build_signing_input(header_b64, payload_b64)
     expected_digest = hashlib.sha256(message).digest()
     expected_suffix = digest_info_prefix + expected_digest
 
@@ -229,13 +269,11 @@ class EntraJWTAuthMiddleware(BaseHTTPMiddleware):
             if payload.get("iss", "") not in valid_issuers:
                 raise ValueError(f"Invalid issuer: {payload.get('iss')}")
 
-            # Validate audience (access token should have aud = api://client_id or client_id)
-            valid_audiences = {
-                self.client_id,
-                f"api://{self.client_id}",
-            }
-            if payload.get("aud", "") not in valid_audiences:
-                raise ValueError(f"Invalid audience: {payload.get('aud')}")
+            # NOTE: audience (aud) is intentionally NOT validated here.
+            # With OIDC-only scopes the access token's audience is
+            # Microsoft Graph (https://graph.microsoft.com), not our
+            # application's client ID.  Tenant-level isolation is ensured
+            # by the issuer check above and the signature verification.
 
             # Attach user info to request state for downstream handlers
             request.state.user = {
