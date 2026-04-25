@@ -35,23 +35,16 @@ export function createMsalConfig(cfg: AuthConfig): Configuration {
 }
 
 /**
- * Build the login/token request with an application-specific scope.
+ * Build the login/token request with standard OIDC scopes.
  *
- * We request `api://{clientId}/.default` so that MSAL issues an access
- * token whose audience (`aud`) is our own application — not Microsoft
- * Graph.  This access token is a standard RS256 JWT that the backend
- * can verify against the tenant's JWKS endpoint.
- *
- * MSAL automatically appends the OIDC scopes (`openid`, `profile`,
- * `offline_access`) so the login flow still returns an ID token and
- * refresh token alongside the access token.
- *
- * **Pre-requisite:** The Entra ID app registration must have an
- * Application ID URI configured (typically `api://{clientId}`).
+ * We request only OIDC scopes (`openid`, `email`, `profile`,
+ * `offline_access`).  The resulting access token targets Microsoft Graph
+ * (`aud` = `https://graph.microsoft.com`) and contains a ``nonce`` in its
+ * JWT header.  The backend's RS256 verifier handles this nonce by
+ * reconstructing the signed header before checking the signature.
  */
 export function getLoginRequest(): { scopes: string[] } {
-  const clientId = getStoredClientId();
-  return { scopes: [`api://${clientId}/.default`] };
+  return { scopes: ["openid", "email", "profile", "offline_access"] };
 }
 
 // ---------------------------------------------------------------------------

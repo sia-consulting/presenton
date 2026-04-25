@@ -5,10 +5,10 @@ import { getMsalInstance } from "@/lib/auth/MsalProvider";
  * Acquire an Entra ID **access token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * The login request uses the `api://{clientId}/.default` scope, so the
- * access token's audience is our own application (not Microsoft Graph)
- * and it is signed with standard RS256 — verifiable by the backend
- * against the tenant's JWKS endpoint.
+ * With OIDC-only scopes the access token targets Microsoft Graph and its
+ * JWT header contains a ``nonce``.  The backend's RS256 verifier handles
+ * this by reconstructing the signed header (replacing the nonce with its
+ * SHA-256 hash) before checking the signature.
  */
 async function getAccessToken(): Promise<string | null> {
   const instance = getMsalInstance();
