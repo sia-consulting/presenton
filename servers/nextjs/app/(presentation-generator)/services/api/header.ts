@@ -2,16 +2,13 @@ import { getLoginRequest } from "@/lib/auth/msalConfig";
 import { getMsalInstance } from "@/lib/auth/MsalProvider";
 
 /**
- * Acquire a Bearer **ID token** from the MSAL cache.
+ * Acquire a Bearer **access token** from the MSAL cache.
  * Falls back to an interactive redirect if the silent acquisition fails.
  *
- * We use the ID token (not the access token) because the requested scopes
- * are standard OIDC scopes (`openid`, `email`, `profile`, `offline_access`)
- * — the resulting access token's `aud` is Microsoft Graph, not our app.
- * The ID token's `aud` *is* the application's client ID, which is what the
- * FastAPI backend validates.
+ * The backend does not validate the token audience, so the access token
+ * (whose `aud` is Microsoft Graph when using OIDC-only scopes) is accepted.
  */
-async function getIdToken(): Promise<string | null> {
+async function getAccessToken(): Promise<string | null> {
   const instance = getMsalInstance();
   const account = instance.getActiveAccount();
   if (!account) return null;
@@ -23,7 +20,7 @@ async function getIdToken(): Promise<string | null> {
       ...request,
       account,
     });
-    return response.idToken;
+    return response.accessToken;
   } catch {
     // Token expired / interaction required — trigger a redirect
     await instance.acquireTokenRedirect(request);
@@ -32,7 +29,7 @@ async function getIdToken(): Promise<string | null> {
 }
 
 export const getHeader = async () => {
-  const token = await getIdToken();
+  const token = await getAccessToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -47,7 +44,7 @@ export const getHeader = async () => {
 };
 
 export const getHeaderForFormData = async () => {
-  const token = await getIdToken();
+  const token = await getAccessToken();
   const headers: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
